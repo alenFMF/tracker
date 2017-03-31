@@ -58,11 +58,18 @@
 			<artifactId>hibernate-c3p0</artifactId>
 			<version>4.3.11.Final</version>
 		</dependency>
+<!-- 
 		<dependency>
 			<groupId>mysql</groupId>
 			<artifactId>mysql-connector-java</artifactId>
 			<version>5.1.36</version>
 		</dependency>
+-->	
+		<dependency>
+		    <groupId>org.postgresql</groupId>
+		    <artifactId>postgresql</artifactId>
+		    <version>42.0.0</version>
+		</dependency>		
 		
 		<!-- Documentation -->
 		<dependency>
@@ -91,8 +98,7 @@
 			<groupId>org.slf4j</groupId>
 			<artifactId>slf4j-api</artifactId>
 			<version>1.7.13</version>
-		</dependency>
-		
+		</dependency>		
 	</dependencies>
 	<build>
 		<plugins>
