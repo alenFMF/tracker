@@ -1,0 +1,12 @@
+target
+.settings
+.project
+my.properties
+my.*.properties
+.pmd
+goopti-back/src/main/webapp/VAADIN/widgetsets/
+/goopti-back/src/test/resources/activiti.cfg.xml
+goopti-back/.project
+services/.tern-project
+*~
+/bin/
