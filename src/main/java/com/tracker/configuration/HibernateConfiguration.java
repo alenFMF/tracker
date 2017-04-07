@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.orm.hibernate4.HibernateTransactionManager;
 import org.springframework.orm.hibernate4.LocalSessionFactoryBean;
 
+import com.tracker.db.GPSRecord;
 import com.tracker.db.TestEntity;
 
 
@@ -20,7 +21,7 @@ public class HibernateConfiguration {
 	@Bean
 	public LocalSessionFactoryBean sessionFactoryBean() {
 		LocalSessionFactoryBean bean = new LocalSessionFactoryBean();
-		bean.setAnnotatedClasses(new Class<?>[] { TestEntity.class });
+		bean.setAnnotatedClasses(new Class<?>[] { TestEntity.class, GPSRecord.class });
 		bean.setHibernateProperties(hibernateProperties);
 		//bean.setEntityInterceptor(new AuditInterceptor());
 		return bean;
