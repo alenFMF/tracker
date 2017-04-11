@@ -18,33 +18,10 @@
 		<!-- property name="location" value="classpath:hibernate.properties"/ -->
         <property name="locations">
             <list>
+            	<value>classpath*:hibernate.properties</value>
                 <value>classpath*:my.hibernate.properties</value>
             </list>
         </property>
-		<property name="properties">
-			<props>
-				<prop key="hibernate.format_sql">true</prop>
-				<prop key="hibernate.connection.url">jdbc:postgresql://localhost:5433/gooptigps?autoReconnect=true</prop>
-				<prop key="hibernate.connection.username">goopti</prop>
-				<prop key="hibernate.connection.password">goopti</prop>
-				<prop key="hibernate.dialect">org.hibernate.dialect.PostgreSQLDialect</prop>
-				<prop key="hibernate.connection.driver_class">org.postgresql.Driver</prop>				
-				<prop key="hibernate.connection.provider_class">org.hibernate.connection.C3P0ConnectionProvider</prop>
-				<prop key="hibernate.c3p0.acquireIncrement">5</prop>
-				<prop key="hibernate.c3p0.initialPoolSize">5</prop>
-				<prop key="hibernate.c3p0.minPoolSize">1</prop>
-				<prop key="hibernate.c3p0.maxPoolSize">40</prop>
-				<prop key="hibernate.c3p0.idleConnectionTestPeriod">300</prop>
-				<prop key="hibernate.c3p0.numHelperThreads">10</prop>
-				<prop key="hibernate.c3p0.maxIdleTime">21600</prop>
-				<prop key="hibernate.show_sql">false</prop>
-				<prop key="hibernate.connection.autocommit">true</prop>	
-				<prop key="hibernate.hbm2ddl.auto">update</prop>
-                <!-- debug hibernate connection leaks -->
-                <prop key="hibernate.c3p0.debugUnreturnedConnectionStackTraces">true</prop>
-                <prop key="hibernate.c3p0.unreturnedConnectionTimeout">2000</prop>
-			</props>
-		</property>
 	</bean>
 	
 	<bean id="generalProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
