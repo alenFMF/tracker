@@ -16,11 +16,9 @@
 
 <https://www.postgresql.org/download/>
 
-Set password for user 'progress' and port for PostgreSQL during installation (usually 5432).
-
-After installation JDBC driver has to be installed as addition (last step of the installation)
-
-Set PATH on the system to the bin directory of the postgres installation (e.g.
+   * Set password for user 'progress' and port for PostgreSQL during installation (usually 5432).
+   * After installation JDBC driver has to be installed as addition (last step of the installation)
+   * Set PATH on the system to the bin directory of the postgres installation (e.g.
 C:\Program Files\PostgreSQL\9.6\bin)
 
 ```
@@ -36,13 +34,13 @@ grant all privileges on database gooptigps to goopti;
 * Open project in Eclipse (File - Open project ...)
 
 * Install Jetty server from Eclipse.
-Help -> Eclipse Marketplace
-Find and install Jetty
+    * Help -> Eclipse Marketplace
+    * Find and install Jetty
 
 * Configure database connection (port) in file src/main/webapp/WEB-INF/spring/root-context.xml
 
 * Run project
-Run -> Run
-Select Run with Jetty (on the bottom of the list)
+    * Run -> Run
+    * Select Run with Jetty (on the bottom of the list)
 
 
