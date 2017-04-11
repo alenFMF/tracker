@@ -7,7 +7,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.tracker.apientities.APIGPSLocation;
-import com.tracker.apientities.APIStatusResponse;
+import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
 import com.tracker.apientities.APITrackerPost;
@@ -38,9 +38,9 @@ public class TestEngine {
 		}	
 	}
 
-	public APIStatusResponse handleTrackerPost(APITrackerPost req) {
+	public APIBaseResponse handleTrackerPost(APITrackerPost req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
-			for(APIGPSLocation loc : req.location) {
+			for (APIGPSLocation loc : req.location) {
 				GPSRecord r = new GPSRecord();
 				r.setSpeed(loc.coords.speed);
 				r.setLongitude(loc.coords.longitude);
@@ -66,6 +66,6 @@ public class TestEngine {
 			}
 			sk.commit();			
 		}
-		return new APIStatusResponse();
+		return new APIBaseResponse();
 	}
 }

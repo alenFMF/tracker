@@ -3,11 +3,14 @@ package com.tracker.db;
 import java.util.Date;
 
 import javax.persistence.Entity;
+import javax.persistence.Index;
+import javax.persistence.Table;
 
 @Entity
+@Table(indexes = { @Index(columnList = "timestamp") })
 public class GPSRecord extends BaseEntity {
 	
-	//coords
+	// Coords
 	public double speed;
 	public double longitude;
 	public double latitude;
@@ -16,25 +19,27 @@ public class GPSRecord extends BaseEntity {
 	public double altitude;
 	public double heading;	
 	
-	//extras
+	// Extras
 	// ---
 	
 	public boolean isMoving;
 	public double odometer;
+	
+	// Length of column @Column(length = 60)
 	public String recordUUID;	
 	
-	// activity
+	// Activity
     public String activityType;
     public int activityConfidence;
 
-    //battery
+    // Battery
 	public double batteryLevel;
 	public boolean batteryCharging;
 	
 	
 	public Date timestamp;
 	
-	//Device
+	// Device
 	public String uuid;
 	public String manufacturer;
 	public String model;

@@ -4,14 +4,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tracker.apientities.APIStatusResponse;
+import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
 import com.tracker.apientities.APITrackerPost;
@@ -21,9 +21,12 @@ import com.tracker.engine.TestEngine;
 @Controller
 @RequestMapping("test")
 public class ExampleController {
-
+	
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(APIBaseResponse.class);	
+	
 	@Autowired
 	TestEngine testEngine;
+	
 	
 	@RequestMapping(value = "test_service_1", method = RequestMethod.GET)
 	@ResponseBody
@@ -46,18 +49,23 @@ public class ExampleController {
 
 	@RequestMapping(value = "gps", method = RequestMethod.POST)
 	@ResponseBody
-	public ResponseEntity<APIStatusResponse> testService2(@RequestBody APITrackerPost req) {
+	public ResponseEntity<APIBaseResponse> testService2(@RequestBody APITrackerPost req) {
 		try {
-			System.out.println(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(req));
-		} catch(Exception e) {
-			System.out.println(e.getMessage());
+			logger.info(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(req));
+		} catch (Exception e) {
+			logger.error("Error logging json", e);
 		}
-
 		try {
-			return new ResponseEntity<APIStatusResponse>(testEngine.handleTrackerPost(req), HttpStatus.OK);
-		} catch(Exception e) {
-			return new ResponseEntity<APIStatusResponse>(HttpStatus.BAD_REQUEST);
+			return new ResponseEntity<APIBaseResponse>(testEngine.handleTrackerPost(req), HttpStatus.OK);
+		} catch (Exception e) {
+			return new ResponseEntity<APIBaseResponse>(HttpStatus.BAD_REQUEST);
 		}
 	}
+	
+    @ExceptionHandler
+    public ResponseEntity<APIBaseResponse> handleException(Exception exc) {
+        APIBaseResponse.logError(exc);
+        return APIBaseResponse.createResponse(exc);
+    }	
 	
 }
