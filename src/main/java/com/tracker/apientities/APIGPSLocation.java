@@ -8,8 +8,8 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class APIGPSLocation {
 	public APICoords coords;	
 	//public APIExtras extras;
-	public boolean is_moving;
-	public double odometer;
+	public Boolean is_moving;
+	public Double odometer;
 	public String uuid;
 	public APIActivity activity;
 	public APIBattery battery;

@@ -2,5 +2,5 @@ package com.tracker.apientities;
 
 public class APIActivity {
     public String type;
-    public int confidence;
+    public Integer confidence;
 }

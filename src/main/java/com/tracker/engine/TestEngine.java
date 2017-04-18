@@ -2,7 +2,9 @@ package com.tracker.engine;
 
 import java.util.Date;
 
+import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
+import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +13,10 @@ import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
 import com.tracker.apientities.APITrackerPost;
+import com.tracker.db.ActivityRecord;
+import com.tracker.db.AltitudeRecord;
+import com.tracker.db.BatteryRecord;
+import com.tracker.db.DeviceRecord;
 import com.tracker.db.GPSRecord;
 import com.tracker.db.TestEntity;
 import com.tracker.utils.SessionKeeper;
@@ -42,26 +48,49 @@ public class TestEngine {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
 			for (APIGPSLocation loc : req.location) {
 				GPSRecord r = new GPSRecord();
+				r.setTimestamp(loc.timestamp);
 				r.setSpeed(loc.coords.speed);
 				r.setLongitude(loc.coords.longitude);
 				r.setLatitude(loc.coords.latitude);
 				r.setAccuracy(loc.coords.accuracy);
-				r.setAltitude(loc.coords.altitude);
-				r.setAltitude_accuracy(loc.coords.altitude_accuracy);
 				r.setHeading(loc.coords.heading);
-				r.setMoving(loc.is_moving);
-				r.setOdometer(loc.odometer);
-				r.setRecordUUID(loc.uuid);
-				r.setActivityType(loc.activity.type);
-				r.setActivityConfidence(loc.activity.confidence);
-				r.setBatteryLevel(loc.battery.level);
-				r.setBatteryCharging(loc.battery.is_charging);
-				r.setTimestamp(loc.timestamp);
-				r.setDeviceUUID(req.device.uuid);
-				r.setDeviceManufacturer(req.device.manufacturer);
-				r.setDeviceModel(req.device.model);
-				r.setDeviceVersion(req.device.version);
-				r.setDevicePlatform(req.device.platform);
+				if(loc.coords.altitude != null) {
+					AltitudeRecord ar = new AltitudeRecord();
+					ar.setAltitude(loc.coords.altitude);
+					ar.setAltitudeAccuracy(loc.coords.altitude_accuracy);
+					r.setAltitude(ar);
+					sk.save(ar);
+				}
+				if(loc.activity != null || loc.is_moving != null || loc.odometer != null) {
+					ActivityRecord acr = new ActivityRecord();
+					if(loc.activity != null) {
+						acr.setActivityType(loc.activity.type);
+						acr.setActivityConfidence(loc.activity.confidence);
+					}
+					acr.setIsMoving(loc.is_moving);
+					acr.setOdometer(loc.odometer);
+					sk.save(acr);
+				}
+//				r.setRecordUUID(loc.uuid);
+				
+				if(loc.battery != null) {
+					BatteryRecord bat = new BatteryRecord();
+					bat.setBatteryCharging(loc.battery.is_charging);
+					bat.setBatteryLevel(loc.battery.level);
+					sk.save(bat);
+				}
+				if(req.device != null) {
+					DeviceRecord drec = (DeviceRecord)sk.createCriteria(DeviceRecord.class).add(Restrictions.eq("uuid", req.device.uuid)).uniqueResult();
+					
+					if(drec == null) {
+						drec = new DeviceRecord();
+					}
+					drec.setUuid(req.device.uuid);
+					drec.setManufacturer(req.device.manufacturer);
+					drec.setModel(req.device.model);
+					drec.setPlatform(req.device.platform);
+					sk.saveOrUpdate(drec);
+				}
 				sk.save(r);
 			}
 			sk.commit();			
