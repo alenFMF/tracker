@@ -1,10 +1,9 @@
 package com.tracker.configuration;
 
-import java.text.DateFormat;
 import java.text.FieldPosition;
-import java.text.SimpleDateFormat;
 import java.util.Date;
 
+import org.apache.commons.lang3.time.FastDateFormat;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.BeansException;
@@ -25,8 +24,8 @@ public class JacksonConfig implements BeanPostProcessor
     {
         private static final long serialVersionUID = 1L;
         
-//        FastDateFormat isoFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss'Z'");
-        DateFormat isoFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        FastDateFormat isoFormat = FastDateFormat.getInstance("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        // Not thread safe: DateFormat isoFormat = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 
         @Override
         public StringBuffer format(Date date, StringBuffer toAppendTo, FieldPosition fieldPosition) {
@@ -53,7 +52,7 @@ public class JacksonConfig implements BeanPostProcessor
                     (MappingJackson2HttpMessageConverter) bean;
             final ObjectMapper objectMapper = jsonConverter.getObjectMapper();
             objectMapper.configure(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS, false);
-//            objectMapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'"));
+            // objectMapper.setDateFormat(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'"));
             objectMapper.setDateFormat(new StdDateFormatExtension());
             jsonConverter.setObjectMapper(objectMapper);
         }
