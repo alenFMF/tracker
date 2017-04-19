@@ -14,7 +14,7 @@ import com.tracker.db.BatteryRecord;
 import com.tracker.db.DeviceRecord;
 import com.tracker.db.GPSRecord;
 import com.tracker.db.TestEntity;
-import com.tracker.db.User;
+import com.tracker.db.TrackingUser;
 
 
 @Configuration
@@ -27,7 +27,7 @@ public class HibernateConfiguration {
 	public LocalSessionFactoryBean sessionFactoryBean() {
 		LocalSessionFactoryBean bean = new LocalSessionFactoryBean();
 		bean.setAnnotatedClasses(new Class<?>[] { TestEntity.class, GPSRecord.class, ActivityRecord.class, AltitudeRecord.class,
-			BatteryRecord.class, DeviceRecord.class, User.class});
+			BatteryRecord.class, DeviceRecord.class, TrackingUser.class});
 		bean.setHibernateProperties(hibernateProperties);
 		//bean.setEntityInterceptor(new AuditInterceptor());
 		return bean;

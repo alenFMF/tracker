@@ -14,6 +14,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
+import com.tracker.apientities.APITrackQuery;
+import com.tracker.apientities.APITrackQueryResponse;
 import com.tracker.apientities.APITrackerPost;
 import com.tracker.engine.TestEngine;
 
@@ -61,6 +63,19 @@ public class ExampleController {
 			return new ResponseEntity<APIBaseResponse>(HttpStatus.BAD_REQUEST);
 		}
 	}
+
+	@RequestMapping(value = "gpsQuery", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APITrackQueryResponse> queryGPS(@RequestBody APITrackQuery req) {
+		try {
+			logger.info(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(req));
+		} catch (Exception e) {
+			logger.error("Error logging json", e);
+		}
+		return new ResponseEntity<APITrackQueryResponse>(testEngine.handleTrackerQuery(req), HttpStatus.OK);
+	}
+	
+	
 	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {

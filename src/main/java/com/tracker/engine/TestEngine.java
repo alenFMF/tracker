@@ -1,6 +1,9 @@
 package com.tracker.engine;
 
 import java.util.Date;
+import java.util.List;
+import java.util.stream.Collector;
+import java.util.stream.Collectors;
 
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
@@ -12,6 +15,9 @@ import com.tracker.apientities.APIGPSLocation;
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
+import com.tracker.apientities.APITrackQuery;
+import com.tracker.apientities.APITrackQueryResponse;
+import com.tracker.apientities.APITrackSample;
 import com.tracker.apientities.APITrackerPost;
 import com.tracker.db.ActivityRecord;
 import com.tracker.db.AltitudeRecord;
@@ -96,5 +102,20 @@ public class TestEngine {
 			sk.commit();			
 		}
 		return new APIBaseResponse();
+	}
+
+	@SuppressWarnings("unchecked")
+	public APITrackQueryResponse handleTrackerQuery(APITrackQuery req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {			
+			List<GPSRecord> recs = sk.createCriteria(GPSRecord.class).add(Restrictions.ge("timestamp", req.startDate)).add(Restrictions.le("timestamp", req.endDate)).list();	
+			List<APITrackSample> samples = recs.stream()
+				.map(x -> new APITrackSample(x))
+				.collect(Collectors.toList());
+			APITrackQueryResponse res = new APITrackQueryResponse("OK", "");
+			res.samples = samples;
+			res.deviceUuid = "neki";
+			res.userId = "username";
+			return res;
+		}
 	}
 }

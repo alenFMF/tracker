@@ -24,7 +24,7 @@ public class GPSRecord extends BaseEntity {
 //	public String recordUUID;	
 	
 	@ManyToOne
-	public User user;
+	public TrackingUser user;
 	
 	@ManyToOne
 	public AltitudeRecord altitude;
@@ -74,10 +74,10 @@ public class GPSRecord extends BaseEntity {
 	public void setAccuracy(double accuracy) {
 		this.accuracy = accuracy;
 	}
-	public User getUser() {
+	public TrackingUser getUser() {
 		return user;
 	}
-	public void setUser(User user) {
+	public void setUser(TrackingUser user) {
 		this.user = user;
 	}
 	public AltitudeRecord getAltitude() {

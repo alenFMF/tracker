@@ -3,6 +3,6 @@ package com.tracker.db;
 import javax.persistence.Entity;
 
 @Entity
-public class User extends BaseEntity {
+public class TrackingUser extends BaseEntity {
 	public String userId;
 }
