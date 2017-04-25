@@ -11,12 +11,20 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tracker.apientities.APIAuthenticateRequest;
 import com.tracker.apientities.APIBaseResponse;
+import com.tracker.apientities.APIDevicesQuery;
+import com.tracker.apientities.APIDevicesResponse;
 import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
 import com.tracker.apientities.APITrackQuery;
 import com.tracker.apientities.APITrackQueryResponse;
 import com.tracker.apientities.APITrackerPost;
+import com.tracker.apientities.APIUserRegisterRequest;
+import com.tracker.apientities.APIUserResetPasswordRequest;
+import com.tracker.apientities.APIUsersQuery;
+import com.tracker.apientities.APIUsersQueryResponse;
+import com.tracker.engine.AuthenticationEngine;
 import com.tracker.engine.TestEngine;
 
 
@@ -29,6 +37,8 @@ public class ExampleController {
 	@Autowired
 	TestEngine testEngine;
 	
+	@Autowired 
+	AuthenticationEngine authEngine;
 	
 	@RequestMapping(value = "test_service_1", method = RequestMethod.GET)
 	@ResponseBody
@@ -75,12 +85,57 @@ public class ExampleController {
 		return new ResponseEntity<APITrackQueryResponse>(testEngine.handleTrackerQuery(req), HttpStatus.OK);
 	}
 	
+	@RequestMapping(value = "devices", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIDevicesResponse> devicesQuery(@RequestBody APIDevicesQuery req) {
+		try {
+			logger.info(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(req));
+		} catch (Exception e) {
+			logger.error("Error logging json", e);
+		}
+		return new ResponseEntity<APIDevicesResponse>(testEngine.handleDevicesQuery(req), HttpStatus.OK);
+	}	
+
+	@RequestMapping(value = "registerUser", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIBaseResponse> registerUser(@RequestBody APIUserRegisterRequest req) {
+		inputLogger(req);
+		return new ResponseEntity<APIBaseResponse>(authEngine.registerUser(req), HttpStatus.OK);
+	}		
 	
+	@RequestMapping(value = "resetPassword", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIUserResetPasswordRequest req) {
+		inputLogger(req);
+		return new ResponseEntity<APIBaseResponse>(authEngine.resetPassword(req), HttpStatus.OK);
+	}		
+
+	@RequestMapping(value = "authenticate", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIAuthenticateRequest req) {
+		inputLogger(req);
+		return new ResponseEntity<APIBaseResponse>(authEngine.authenticate(req), HttpStatus.OK);
+	}		
+	
+	@RequestMapping(value = "users", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIUsersQueryResponse> listUsers(@RequestBody APIUsersQuery req) {
+		inputLogger(req);
+		return new ResponseEntity<APIUsersQueryResponse>(authEngine.listUsers(req), HttpStatus.OK);
+	}	
 	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {
         APIBaseResponse.logError(exc);
         return APIBaseResponse.createResponse(exc);
     }	
+    
+    public void inputLogger(Object req) {
+		try {
+			logger.info(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(req));
+		} catch (Exception e) {
+			logger.error("Error logging json", e);
+		}    	
+    }
 	
 }

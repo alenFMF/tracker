@@ -7,12 +7,15 @@ import java.util.stream.Collectors;
 
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
+import org.hibernate.criterion.MatchMode;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.tracker.apientities.APIGPSLocation;
 import com.tracker.apientities.APIBaseResponse;
+import com.tracker.apientities.APIDevicesQuery;
+import com.tracker.apientities.APIDevicesResponse;
 import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
 import com.tracker.apientities.APITrackQuery;
@@ -96,6 +99,8 @@ public class TestEngine {
 					drec.setModel(req.device.model);
 					drec.setPlatform(req.device.platform);
 					sk.saveOrUpdate(drec);
+					r.setDevice(drec);
+					
 				}
 				sk.save(r);
 			}
@@ -107,7 +112,24 @@ public class TestEngine {
 	@SuppressWarnings("unchecked")
 	public APITrackQueryResponse handleTrackerQuery(APITrackQuery req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {			
-			List<GPSRecord> recs = sk.createCriteria(GPSRecord.class).add(Restrictions.ge("timestamp", req.startDate)).add(Restrictions.le("timestamp", req.endDate)).list();	
+			
+			Criteria c = sk.createCriteria(GPSRecord.class);
+			
+			if (req.deviceId != null && req.deviceId != "") {
+				c.createAlias("device", "Device");
+				c.add(Restrictions.eq("Device.uuid", req.deviceId));
+			} 
+			if (req.userId != null && req.userId != "") {
+				c.createAlias("user", "User");
+				c.add(Restrictions.eq("User.userId", req.userId));
+			}
+			if(req.requiredAccuracy != null && req.requiredAccuracy > 0) {
+				c.add(Restrictions.le("accuracy", req.requiredAccuracy));
+			}
+			c.add(Restrictions.ge("timestamp", req.startDate))
+			 .add(Restrictions.le("timestamp", req.endDate));
+			
+			List<GPSRecord> recs = c.list();	
 			List<APITrackSample> samples = recs.stream()
 				.map(x -> new APITrackSample(x))
 				.collect(Collectors.toList());
@@ -118,4 +140,19 @@ public class TestEngine {
 			return res;
 		}
 	}
+	
+	@SuppressWarnings("unchecked")
+	public APIDevicesResponse handleDevicesQuery(APIDevicesQuery req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {						
+			Criteria c = sk.createCriteria(DeviceRecord.class);						
+			List<DeviceRecord> recs = c.list();	
+			List<String> devList = recs.stream()
+				.map(x -> x.uuid)
+				.collect(Collectors.toList());
+			APIDevicesResponse res = new APIDevicesResponse();
+			res.devices = devList;
+			return res;
+		}
+	}
+	
 }

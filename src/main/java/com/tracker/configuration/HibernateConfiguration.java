@@ -26,8 +26,15 @@ public class HibernateConfiguration {
 	@Bean
 	public LocalSessionFactoryBean sessionFactoryBean() {
 		LocalSessionFactoryBean bean = new LocalSessionFactoryBean();
-		bean.setAnnotatedClasses(new Class<?>[] { TestEntity.class, GPSRecord.class, ActivityRecord.class, AltitudeRecord.class,
-			BatteryRecord.class, DeviceRecord.class, TrackingUser.class});
+		bean.setAnnotatedClasses(new Class<?>[] { 
+			TestEntity.class, 
+			GPSRecord.class, 
+			ActivityRecord.class, 
+			AltitudeRecord.class,
+			BatteryRecord.class, 
+			DeviceRecord.class, 
+			TrackingUser.class
+			});
 		bean.setHibernateProperties(hibernateProperties);
 		//bean.setEntityInterceptor(new AuditInterceptor());
 		return bean;
