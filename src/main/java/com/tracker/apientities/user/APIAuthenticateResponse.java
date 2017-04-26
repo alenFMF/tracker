@@ -1,4 +1,6 @@
-package com.tracker.apientities;
+package com.tracker.apientities.user;
+
+import com.tracker.apientities.APIBaseResponse;
 
 public class APIAuthenticateResponse extends APIBaseResponse {
 	public String token;

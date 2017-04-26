@@ -3,6 +3,7 @@ package com.tracker.db;
 import java.util.Date;
 
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.Index;
 import javax.persistence.ManyToOne;
 import javax.persistence.Table;
@@ -23,19 +24,19 @@ public class GPSRecord extends BaseEntity {
 	// Length of column @Column(length = 60)
 	// public String recordUUID;	
 	
-	@ManyToOne
+	@ManyToOne(fetch=FetchType.LAZY)
 	public TrackingUser user;
 	
-	@ManyToOne
+	@ManyToOne(fetch=FetchType.LAZY)
 	public AltitudeRecord altitude;
 
-	@ManyToOne
+	@ManyToOne(fetch=FetchType.LAZY)
 	public ActivityRecord activity;
 	
-	@ManyToOne	
+	@ManyToOne(fetch=FetchType.LAZY)	
 	public BatteryRecord battery;
 	
-	@ManyToOne
+	@ManyToOne(fetch=FetchType.LAZY)
 	public DeviceRecord device;
 	
 	public Date getTimestamp() {

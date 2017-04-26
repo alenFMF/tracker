@@ -1,27 +1,33 @@
 package com.tracker.engine;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
 import org.hibernate.criterion.MatchMode;
+import org.hibernate.criterion.Order;
+import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
+import org.hibernate.transform.Transformers;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.tracker.apientities.APIGPSLocation;
 import com.tracker.apientities.APIBaseResponse;
-import com.tracker.apientities.APIDevicesQuery;
-import com.tracker.apientities.APIDevicesResponse;
 import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
-import com.tracker.apientities.APITrackQuery;
-import com.tracker.apientities.APITrackQueryResponse;
-import com.tracker.apientities.APITrackSample;
-import com.tracker.apientities.APITrackerPost;
+import com.tracker.apientities.devices.APIDevicesQuery;
+import com.tracker.apientities.devices.APIDevicesResponse;
+import com.tracker.apientities.tracks.APIGPSLocation;
+import com.tracker.apientities.tracks.APITrackDetail;
+import com.tracker.apientities.tracks.APITrackQuery;
+import com.tracker.apientities.tracks.APITrackQueryResponse;
+import com.tracker.apientities.tracks.APITrackSample;
+import com.tracker.apientities.tracks.APITrackerPost;
 import com.tracker.db.ActivityRecord;
 import com.tracker.db.AltitudeRecord;
 import com.tracker.db.BatteryRecord;
@@ -114,29 +120,62 @@ public class TestEngine {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {			
 			
 			Criteria c = sk.createCriteria(GPSRecord.class);
-			
-			if (req.deviceId != null && req.deviceId != "") {
+
+			if (req.deviceIds != null && !req.deviceIds.isEmpty()) {
 				c.createAlias("device", "Device");
-				c.add(Restrictions.eq("Device.uuid", req.deviceId));
+				c.add(Restrictions.in("Device.uuid", req.deviceIds));
 			} 
-			if (req.userId != null && req.userId != "") {
-				c.createAlias("user", "User");
-				c.add(Restrictions.eq("User.userId", req.userId));
-			}
+//			if (req.userIds != null && !req.userIds.isEmpty()) {
+//				c.createAlias("user", "User");
+//				c.add(Restrictions.in("User.userId", req.userIds));
+//				criteriaCount++;
+//			}
+
+//			if (req.organizationGroup != null) {
+//				c.createAlias("user", "User");
+//				c.add(Restrictions.in("User.userId", req.userIds));	
+//				criteriaCount++;
+//			}
+			
+			
 			if(req.requiredAccuracy != null && req.requiredAccuracy > 0) {
 				c.add(Restrictions.le("accuracy", req.requiredAccuracy));
 			}
+			
 			c.add(Restrictions.ge("timestamp", req.startDate))
 			 .add(Restrictions.le("timestamp", req.endDate));
 			
-			List<GPSRecord> recs = c.list();	
-			List<APITrackSample> samples = recs.stream()
-				.map(x -> new APITrackSample(x))
-				.collect(Collectors.toList());
+			c.setProjection( Projections.projectionList()
+			        .add( Projections.property("timestamp"), "timestamp" )
+			        .add( Projections.property("longitude"), "longitude" )
+			        .add( Projections.property("latitude"), "latitude" )
+			        .add( Projections.property("speed"), "speed" )
+			        .add( Projections.property("heading"), "heading" )
+			        .add( Projections.property("Device.uuid"), "deviceId" )
+			    );
+			
+			c.addOrder(Order.asc("timestamp"));
+			c.setResultTransformer(Transformers.aliasToBean(TableSample.class));
+			
+			List<TableSample> records = c.list();	
+			Map<String, List<TableSample>> sampleMap = records.stream()
+				.collect(Collectors.groupingBy(x -> x.deviceId, Collectors.toList()));
+			
 			APITrackQueryResponse res = new APITrackQueryResponse("OK", "");
-			res.samples = samples;
-			res.deviceUuid = "neki";
-			res.userId = "username";
+			
+			List<APITrackDetail> trackList = new ArrayList<APITrackDetail>();
+			
+			for(Map.Entry<String, List<TableSample>> e: sampleMap.entrySet()) {
+				APITrackDetail det = new APITrackDetail();
+				det.deviceUuid = e.getKey();
+				det.samples = e.getValue()
+								.stream()
+								.map(el -> 
+								    new APITrackSample(el.timestamp, el.longitude, el.latitude, el.speed, el.heading,null))
+								.collect(Collectors.toList());
+				trackList.add(det);
+			}
+			res.tracks = trackList;			
 			return res;
 		}
 	}
@@ -147,7 +186,7 @@ public class TestEngine {
 			Criteria c = sk.createCriteria(DeviceRecord.class);						
 			List<DeviceRecord> recs = c.list();	
 			List<String> devList = recs.stream()
-				.map(x -> x.uuid)
+				.map(x -> x.getUuid())
 				.collect(Collectors.toList());
 			APIDevicesResponse res = new APIDevicesResponse();
 			res.devices = devList;
@@ -155,4 +194,15 @@ public class TestEngine {
 		}
 	}
 	
+	//Table classes
+
+	public static class TableSample {
+		public Date timestamp;
+		public double longitude;
+		public double latitude;
+		public double speed;
+		public double heading;	
+		public int stopDuration; // minutes
+		public String deviceId;
+	}
 }

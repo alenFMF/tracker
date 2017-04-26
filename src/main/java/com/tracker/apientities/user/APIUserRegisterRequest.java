@@ -1,4 +1,4 @@
-package com.tracker.apientities;
+package com.tracker.apientities.user;
 
 public class APIUserRegisterRequest {
 	public String userId;

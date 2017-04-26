@@ -9,7 +9,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 
 @Entity
-public class LocationVisit {
+public class LocationVisit extends BaseEntity {
 	public Double longitude;
 	public Double latitude;
 	public String name;

@@ -10,12 +10,12 @@ import javax.persistence.Table;
 public class DeviceRecord extends BaseEntity {
 	
 	@Column(unique = true) 
-	public String uuid;
+	private String uuid;
 	
-	public String manufacturer;
-	public String model;
-	public String version;
-	public String platform;
+	private String manufacturer;
+	private String model;
+	private String version;
+	private String platform;
 	
 	
 	public String getUuid() {

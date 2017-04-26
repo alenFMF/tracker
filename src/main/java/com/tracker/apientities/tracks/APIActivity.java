@@ -1,4 +1,4 @@
-package com.tracker.apientities;
+package com.tracker.apientities.tracks;
 
 public class APIActivity {
     public String type;

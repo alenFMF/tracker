@@ -11,26 +11,26 @@ import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.tracker.apientities.APIAuthenticateRequest;
 import com.tracker.apientities.APIBaseResponse;
-import com.tracker.apientities.APIDevicesQuery;
-import com.tracker.apientities.APIDevicesResponse;
 import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
-import com.tracker.apientities.APITrackQuery;
-import com.tracker.apientities.APITrackQueryResponse;
-import com.tracker.apientities.APITrackerPost;
-import com.tracker.apientities.APIUserRegisterRequest;
-import com.tracker.apientities.APIUserResetPasswordRequest;
-import com.tracker.apientities.APIUsersQuery;
-import com.tracker.apientities.APIUsersQueryResponse;
+import com.tracker.apientities.devices.APIDevicesQuery;
+import com.tracker.apientities.devices.APIDevicesResponse;
+import com.tracker.apientities.tracks.APITrackQuery;
+import com.tracker.apientities.tracks.APITrackQueryResponse;
+import com.tracker.apientities.tracks.APITrackerPost;
+import com.tracker.apientities.user.APIAuthenticateRequest;
+import com.tracker.apientities.user.APIUserRegisterRequest;
+import com.tracker.apientities.user.APIUserResetPasswordRequest;
+import com.tracker.apientities.user.APIUsersQuery;
+import com.tracker.apientities.user.APIUsersQueryResponse;
 import com.tracker.engine.AuthenticationEngine;
 import com.tracker.engine.TestEngine;
 
 
 @Controller
-@RequestMapping("test")
-public class ExampleController {
+@RequestMapping("tracker")
+public class TrackerController {
 	
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(APIBaseResponse.class);	
 	
@@ -40,33 +40,29 @@ public class ExampleController {
 	@Autowired 
 	AuthenticationEngine authEngine;
 	
-	@RequestMapping(value = "test_service_1", method = RequestMethod.GET)
-	@ResponseBody
-	public String testService1() {
-		return "Hello world!";
-	}
+//	@RequestMapping(value = "test_service_1", method = RequestMethod.GET)
+//	@ResponseBody
+//	public String testService1() {
+//		return "Hello world!";
+//	}
 	
-	@RequestMapping(value = "test_service_2", method = RequestMethod.POST)
-	@ResponseBody
-	public APITest2 testService2(@RequestBody APITest1 req) {
-		return testEngine.handleService2(req);
-	}
+//	@RequestMapping(value = "test_service_2", method = RequestMethod.POST)
+//	@ResponseBody
+//	public APITest2 testService2(@RequestBody APITest1 req) {
+//		return testEngine.handleService2(req);
+//	}
 
-	@RequestMapping(value = "print", method = RequestMethod.POST)
-	@ResponseBody
-	public String testService2(@RequestBody String req) {
-		System.out.println(req);
-		return req;
-	}
+//	@RequestMapping(value = "print", method = RequestMethod.POST)
+//	@ResponseBody
+//	public String testService2(@RequestBody String req) {
+//		System.out.println(req);
+//		return req;
+//	}
 
-	@RequestMapping(value = "gps", method = RequestMethod.POST)
+	@RequestMapping(value = "gpsPost", method = RequestMethod.POST)
 	@ResponseBody
 	public ResponseEntity<APIBaseResponse> testService2(@RequestBody APITrackerPost req) {
-		try {
-			logger.info(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(req));
-		} catch (Exception e) {
-			logger.error("Error logging json", e);
-		}
+		inputLogger(req);
 		try {
 			return new ResponseEntity<APIBaseResponse>(testEngine.handleTrackerPost(req), HttpStatus.OK);
 		} catch (Exception e) {
@@ -77,22 +73,14 @@ public class ExampleController {
 	@RequestMapping(value = "gpsQuery", method = RequestMethod.POST)
 	@ResponseBody
 	public ResponseEntity<APITrackQueryResponse> queryGPS(@RequestBody APITrackQuery req) {
-		try {
-			logger.info(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(req));
-		} catch (Exception e) {
-			logger.error("Error logging json", e);
-		}
+		inputLogger(req);
 		return new ResponseEntity<APITrackQueryResponse>(testEngine.handleTrackerQuery(req), HttpStatus.OK);
 	}
 	
 	@RequestMapping(value = "devices", method = RequestMethod.POST)
 	@ResponseBody
 	public ResponseEntity<APIDevicesResponse> devicesQuery(@RequestBody APIDevicesQuery req) {
-		try {
-			logger.info(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(req));
-		} catch (Exception e) {
-			logger.error("Error logging json", e);
-		}
+		inputLogger(req);
 		return new ResponseEntity<APIDevicesResponse>(testEngine.handleDevicesQuery(req), HttpStatus.OK);
 	}	
 

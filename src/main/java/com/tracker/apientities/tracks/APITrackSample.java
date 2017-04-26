@@ -1,4 +1,4 @@
-package com.tracker.apientities;
+package com.tracker.apientities.tracks;
 
 import java.util.Date;
 
@@ -9,7 +9,8 @@ public class APITrackSample {
 	public double longitude;
 	public double latitude;
 	public double speed;
-	public double heading;		
+	public double heading;	
+	public Integer stopDuration; // minutes
 	
 	public APITrackSample() {}
 	
@@ -19,5 +20,13 @@ public class APITrackSample {
 		this.latitude = rec.latitude;
 		this.speed = rec.speed;
 		this.heading = rec.heading;
+	}
+	
+	public APITrackSample(Date timestamp, double longitude, double latitude, double speed, double heading, Integer stopDuration) {
+		this.timestamp = timestamp;
+		this.longitude = longitude;
+		this.latitude = latitude;
+		this.speed = speed;
+		this.heading = heading;		
 	}
 }
