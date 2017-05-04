@@ -1,5 +1,8 @@
 package com.tracker.apientities.vehicle;
 
-public class APIVehicleQuery {
+import java.util.List;
 
+public class APIVehicleQuery {
+	public String token;
+	public List<String> organizationGroups;
 }

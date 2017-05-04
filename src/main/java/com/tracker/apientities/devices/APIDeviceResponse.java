@@ -6,6 +6,10 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 import com.tracker.apientities.APIBaseResponse;
 
 @JsonInclude(JsonInclude.Include.NON_NULL)
-public class APIDevicesResponse extends APIBaseResponse {
-	public List<String> devices;
+public class APIDeviceResponse extends APIBaseResponse {
+	public List<APIDevice> devices;
+	
+	public APIDeviceResponse(List<APIDevice> devices) {
+		this.devices = devices;
+	}
 }

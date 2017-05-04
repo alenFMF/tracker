@@ -11,8 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.tracker.apientities.APIBaseResponse;
-import com.tracker.apientities.devices.APIDevicesQuery;
-import com.tracker.apientities.devices.APIDevicesResponse;
+import com.tracker.apientities.devices.APIDeviceQuery;
+import com.tracker.apientities.devices.APIDeviceResponse;
 import com.tracker.apientities.user.APIAuthenticateRequest;
 import com.tracker.apientities.user.APIAuthenticateResponse;
 import com.tracker.apientities.user.APIUserRegisterRequest;

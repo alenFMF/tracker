@@ -20,8 +20,8 @@ import org.springframework.stereotype.Component;
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
-import com.tracker.apientities.devices.APIDevicesQuery;
-import com.tracker.apientities.devices.APIDevicesResponse;
+import com.tracker.apientities.devices.APIDeviceQuery;
+import com.tracker.apientities.devices.APIDeviceResponse;
 import com.tracker.apientities.tracks.APIGPSLocation;
 import com.tracker.apientities.tracks.APITrackDetail;
 import com.tracker.apientities.tracks.APITrackQuery;
@@ -180,19 +180,6 @@ public class TestEngine {
 		}
 	}
 	
-	@SuppressWarnings("unchecked")
-	public APIDevicesResponse handleDevicesQuery(APIDevicesQuery req) {
-		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {						
-			Criteria c = sk.createCriteria(DeviceRecord.class);						
-			List<DeviceRecord> recs = c.list();	
-			List<String> devList = recs.stream()
-				.map(x -> x.getUuid())
-				.collect(Collectors.toList());
-			APIDevicesResponse res = new APIDevicesResponse();
-			res.devices = devList;
-			return res;
-		}
-	}
 	
 	//Table classes
 

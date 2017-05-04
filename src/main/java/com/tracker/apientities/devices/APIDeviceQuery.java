@@ -1,5 +1,5 @@
 package com.tracker.apientities.devices;
 
-public class APIDevicesQuery {
+public class APIDeviceQuery {
 	public String token;
 }

@@ -13,6 +13,7 @@ public class UserGroupAssignment {
 	@ManyToOne
 	public TrackingUser user;
 	
-	public Date form;
+	public Date from;
 	public Date until; // if null and from < now assignment still valid
+	public String role; // currently USER, ADMIN
 }

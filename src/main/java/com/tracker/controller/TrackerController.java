@@ -12,18 +12,9 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.apientities.APIBaseResponse;
-import com.tracker.apientities.APITest1;
-import com.tracker.apientities.APITest2;
-import com.tracker.apientities.devices.APIDevicesQuery;
-import com.tracker.apientities.devices.APIDevicesResponse;
 import com.tracker.apientities.tracks.APITrackQuery;
 import com.tracker.apientities.tracks.APITrackQueryResponse;
 import com.tracker.apientities.tracks.APITrackerPost;
-import com.tracker.apientities.user.APIAuthenticateRequest;
-import com.tracker.apientities.user.APIUserRegisterRequest;
-import com.tracker.apientities.user.APIUserResetPasswordRequest;
-import com.tracker.apientities.user.APIUsersQuery;
-import com.tracker.apientities.user.APIUsersQueryResponse;
 import com.tracker.engine.AuthenticationEngine;
 import com.tracker.engine.TestEngine;
 
@@ -77,40 +68,40 @@ public class TrackerController {
 		return new ResponseEntity<APITrackQueryResponse>(testEngine.handleTrackerQuery(req), HttpStatus.OK);
 	}
 	
-	@RequestMapping(value = "devices", method = RequestMethod.POST)
-	@ResponseBody
-	public ResponseEntity<APIDevicesResponse> devicesQuery(@RequestBody APIDevicesQuery req) {
-		inputLogger(req);
-		return new ResponseEntity<APIDevicesResponse>(testEngine.handleDevicesQuery(req), HttpStatus.OK);
-	}	
+//	@RequestMapping(value = "devices", method = RequestMethod.POST)
+//	@ResponseBody
+//	public ResponseEntity<APIDevicesResponse> devicesQuery(@RequestBody APIDevicesQuery req) {
+//		inputLogger(req);
+//		return new ResponseEntity<APIDevicesResponse>(testEngine.handleDevicesQuery(req), HttpStatus.OK);
+//	}	
 
-	@RequestMapping(value = "registerUser", method = RequestMethod.POST)
-	@ResponseBody
-	public ResponseEntity<APIBaseResponse> registerUser(@RequestBody APIUserRegisterRequest req) {
-		inputLogger(req);
-		return new ResponseEntity<APIBaseResponse>(authEngine.registerUser(req), HttpStatus.OK);
-	}		
-	
-	@RequestMapping(value = "resetPassword", method = RequestMethod.POST)
-	@ResponseBody
-	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIUserResetPasswordRequest req) {
-		inputLogger(req);
-		return new ResponseEntity<APIBaseResponse>(authEngine.resetPassword(req), HttpStatus.OK);
-	}		
-
-	@RequestMapping(value = "authenticate", method = RequestMethod.POST)
-	@ResponseBody
-	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIAuthenticateRequest req) {
-		inputLogger(req);
-		return new ResponseEntity<APIBaseResponse>(authEngine.authenticate(req), HttpStatus.OK);
-	}		
-	
-	@RequestMapping(value = "users", method = RequestMethod.POST)
-	@ResponseBody
-	public ResponseEntity<APIUsersQueryResponse> listUsers(@RequestBody APIUsersQuery req) {
-		inputLogger(req);
-		return new ResponseEntity<APIUsersQueryResponse>(authEngine.listUsers(req), HttpStatus.OK);
-	}	
+//	@RequestMapping(value = "registerUser", method = RequestMethod.POST)
+//	@ResponseBody
+//	public ResponseEntity<APIBaseResponse> registerUser(@RequestBody APIUserRegisterRequest req) {
+//		inputLogger(req);
+//		return new ResponseEntity<APIBaseResponse>(authEngine.registerUser(req), HttpStatus.OK);
+//	}		
+//	
+//	@RequestMapping(value = "resetPassword", method = RequestMethod.POST)
+//	@ResponseBody
+//	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIUserResetPasswordRequest req) {
+//		inputLogger(req);
+//		return new ResponseEntity<APIBaseResponse>(authEngine.resetPassword(req), HttpStatus.OK);
+//	}		
+//
+//	@RequestMapping(value = "authenticate", method = RequestMethod.POST)
+//	@ResponseBody
+//	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIAuthenticateRequest req) {
+//		inputLogger(req);
+//		return new ResponseEntity<APIBaseResponse>(authEngine.authenticate(req), HttpStatus.OK);
+//	}		
+//	
+//	@RequestMapping(value = "users", method = RequestMethod.POST)
+//	@ResponseBody
+//	public ResponseEntity<APIUsersQueryResponse> listUsers(@RequestBody APIUsersQuery req) {
+//		inputLogger(req);
+//		return new ResponseEntity<APIUsersQueryResponse>(authEngine.listUsers(req), HttpStatus.OK);
+//	}	
 	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {

@@ -15,6 +15,7 @@ import com.tracker.db.DeviceRecord;
 import com.tracker.db.GPSRecord;
 import com.tracker.db.TestEntity;
 import com.tracker.db.TrackingUser;
+import com.tracker.db.Vehicle;
 
 
 @Configuration
@@ -33,7 +34,8 @@ public class HibernateConfiguration {
 			AltitudeRecord.class,
 			BatteryRecord.class, 
 			DeviceRecord.class, 
-			TrackingUser.class
+			TrackingUser.class,
+			Vehicle.class
 			});
 		bean.setHibernateProperties(hibernateProperties);
 		//bean.setEntityInterceptor(new AuditInterceptor());

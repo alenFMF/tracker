@@ -58,4 +58,13 @@ public class DeviceRecord extends BaseEntity {
 		this.platform = platform;
 	}
 	
+	public DeviceRecord() {	}
+	
+	public DeviceRecord(String uuid, String manufacturer, String model, String version, String platform) {
+		this.uuid = uuid;
+		this.manufacturer = manufacturer;
+		this.model = model;
+		this.version = version;
+		this.platform = platform;
+	}
 }

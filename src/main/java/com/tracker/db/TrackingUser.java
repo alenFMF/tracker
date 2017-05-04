@@ -16,7 +16,6 @@ public class TrackingUser extends BaseEntity {
 	}
 	
 	public static String hashPassword(String password, PasswordEncoder passwordEncoder) {
-		//Todo properly
 		return passwordEncoder.encode(password);
 	}
 	
