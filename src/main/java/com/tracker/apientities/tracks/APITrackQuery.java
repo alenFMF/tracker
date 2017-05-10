@@ -6,7 +6,7 @@ import java.util.List;
 public class APITrackQuery {
 	public String token;  
 	// only one of lists can be used as a filter. Others null or empty
-	public List<String> deviceIds;
+	public List<String> userIds;
 	
     public String organizationGroup;  // query can be done for one organization group only. Mandatory.
 	

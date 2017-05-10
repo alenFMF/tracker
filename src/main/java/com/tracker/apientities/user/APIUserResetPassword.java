@@ -1,7 +1,7 @@
 package com.tracker.apientities.user;
 
-public class APIUserResetPasswordRequest {
+public class APIUserResetPassword {
 	public String userId;
-	public String oldPassword;
+	public String resetToken;
 	public String newPassword;
 }

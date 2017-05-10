@@ -1,5 +1,6 @@
 package com.tracker.db;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
@@ -8,6 +9,35 @@ public class TrackingUser extends BaseEntity {
 	public String userId;
 	public String passwordHash; 
 	
+	@Column(unique = true) 
+	public String postingSecret;
+	public String getUserId() {
+		return userId;
+	}
+
+	public void setUserId(String userId) {
+		this.userId = userId;
+	}
+
+	@Column(nullable=false)
+	public Boolean admin = false;
+	
+	public String getPostingSecret() {
+		return postingSecret;
+	}
+
+	public Boolean getAdmin() {
+		return admin;
+	}
+
+	public void setAdmin(Boolean admin) {
+		this.admin = admin;
+	}
+
+	public void setPostingSecret(String postingSecret) {
+		this.postingSecret = postingSecret;
+	}
+
 	public TrackingUser() {}
 	
 	public TrackingUser(String userId, String password, PasswordEncoder passwordEncoder) {

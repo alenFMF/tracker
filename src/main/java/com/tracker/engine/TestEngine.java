@@ -7,6 +7,7 @@ import java.util.Map;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.tuple.Pair;
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
 import org.hibernate.criterion.MatchMode;
@@ -34,6 +35,7 @@ import com.tracker.db.BatteryRecord;
 import com.tracker.db.DeviceRecord;
 import com.tracker.db.GPSRecord;
 import com.tracker.db.TestEntity;
+import com.tracker.db.TrackingUser;
 import com.tracker.utils.SessionKeeper;
 
 @Component
@@ -41,6 +43,9 @@ public class TestEngine {
 
 	@Autowired
 	private SessionFactory sessionFactory;
+	
+	@Autowired 
+	private AuthenticationEngine authEngine;	
 
 	public APITest2 handleService2(APITest1 req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
@@ -59,10 +64,15 @@ public class TestEngine {
 		}	
 	}
 
-	public APIBaseResponse handleTrackerPost(APITrackerPost req) {
+	public APIBaseResponse handleTrackingPost(String userSecret, APITrackerPost req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
+			TrackingUser user = (TrackingUser)sk.createCriteria(TrackingUser.class).add(Restrictions.eq("postingSecret", userSecret)).uniqueResult();
+			if(user == null) {
+				return null;
+			}			
 			for (APIGPSLocation loc : req.location) {
 				GPSRecord r = new GPSRecord();
+				r.setUser(user);
 				r.setTimestamp(loc.timestamp);
 				r.setSpeed(loc.coords.speed);
 				r.setLongitude(loc.coords.longitude);
@@ -116,15 +126,31 @@ public class TestEngine {
 	}
 
 	@SuppressWarnings("unchecked")
-	public APITrackQueryResponse handleTrackerQuery(APITrackQuery req) {
-		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {			
-			
+	public APIBaseResponse handleTrackerQuery(APITrackQuery req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
+			if(req.token == null) {
+				return new APIBaseResponse("AUTH_TOKEN_MISSING", "");
+			}			
+			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
+			if(tokenUser == null) {
+				return new APIBaseResponse("AUTH_ERROR", "");
+			}
 			Criteria c = sk.createCriteria(GPSRecord.class);
-
-			if (req.deviceIds != null && !req.deviceIds.isEmpty()) {
-				c.createAlias("device", "Device");
-				c.add(Restrictions.in("Device.uuid", req.deviceIds));
-			} 
+			c.createAlias("device", "Device");
+			c.createAlias("user", "User");
+			
+			if(tokenUser.getAdmin()) {
+				if (req.userIds != null && !req.userIds.isEmpty()) {
+					c.add(Restrictions.in("User.userId", req.userIds));		
+				} else {  // get admins track
+					c.add(Restrictions.eq("User.userId", tokenUser.getUserId()));
+				}		
+			} else {
+				c.add(Restrictions.eq("User.userId", tokenUser.getUserId()));
+			}
+//			if (req.deviceIds != null && !req.deviceIds.isEmpty()) {
+//				c.add(Restrictions.in("Device.uuid", req.deviceIds));
+//			} 
 //			if (req.userIds != null && !req.userIds.isEmpty()) {
 //				c.createAlias("user", "User");
 //				c.add(Restrictions.in("User.userId", req.userIds));
@@ -152,27 +178,30 @@ public class TestEngine {
 			        .add( Projections.property("speed"), "speed" )
 			        .add( Projections.property("heading"), "heading" )
 			        .add( Projections.property("Device.uuid"), "deviceId" )
+			        .add( Projections.property("User.userId"), "userId" )
 			    );
 			
 			c.addOrder(Order.asc("timestamp"));
 			c.setResultTransformer(Transformers.aliasToBean(TableSample.class));
 			
 			List<TableSample> records = c.list();	
-			Map<String, List<TableSample>> sampleMap = records.stream()
-				.collect(Collectors.groupingBy(x -> x.deviceId, Collectors.toList()));
+			Map<Pair<String, String>, List<TableSample>> sampleMap = (Map<Pair<String, String>, List<TableSample>>)records.stream()
+				.collect(Collectors.groupingBy(x -> Pair.of(x.userId, x.deviceId)));
 			
 			APITrackQueryResponse res = new APITrackQueryResponse("OK", "");
 			
 			List<APITrackDetail> trackList = new ArrayList<APITrackDetail>();
 			
-			for(Map.Entry<String, List<TableSample>> e: sampleMap.entrySet()) {
+			for(Map.Entry<Pair<String, String>, List<TableSample>> e: sampleMap.entrySet()) {
 				APITrackDetail det = new APITrackDetail();
-				det.deviceUuid = e.getKey();
+				det.userId = e.getKey().getLeft();
+				det.deviceUuid = e.getKey().getRight();
 				det.samples = e.getValue()
 								.stream()
 								.map(el -> 
 								    new APITrackSample(el.timestamp, el.longitude, el.latitude, el.speed, el.heading,null))
 								.collect(Collectors.toList());
+				
 				trackList.add(det);
 			}
 			res.tracks = trackList;			
@@ -191,5 +220,6 @@ public class TestEngine {
 		public double heading;	
 		public int stopDuration; // minutes
 		public String deviceId;
+		public String userId;
 	}
 }

@@ -16,6 +16,7 @@ import java.security.SecureRandom;
 public class TokenStorage {
 	private Map<String, UserAuthentication> tokenToAuth = new ConcurrentHashMap<>();	
 	private Map<String, UserAuthentication> userToAuth = new ConcurrentHashMap<>();	
+	private Map<String, String> passwordResetTokens = new ConcurrentHashMap<>();
 	private SecureRandom generator;
 	private int tokenLength = 24;
 	
@@ -73,4 +74,17 @@ public class TokenStorage {
 		return String.format("%1$" + this.tokenLength + "s", token).replace(' ', '0');
 	}
 	
+	public String passwordResetUser(String userId) {
+		String pToken = generateToken();
+		passwordResetTokens.put(pToken, userId);
+		return pToken;
+	}
+	
+	public boolean checkPasswordResetToken(String userId, String token) {
+		return passwordResetTokens.get(token) == userId;
+	}
+	
+	public void clearPasswordResetToken(String token) {
+		passwordResetTokens.remove(token);
+	}
 }

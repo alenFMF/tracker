@@ -5,6 +5,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
@@ -50,22 +51,37 @@ public class TrackerController {
 //		return req;
 //	}
 
-	@RequestMapping(value = "gpsPost", method = RequestMethod.POST)
+//	@RequestMapping(value = "gpsPost", method = RequestMethod.POST)
+//	@ResponseBody
+//	public ResponseEntity<APIBaseResponse> testService2(@RequestBody APITrackerPost req) {
+//		inputLogger(req);
+//		try {
+//			return new ResponseEntity<APIBaseResponse>(testEngine.handleTrackerPost(req), HttpStatus.OK);
+//		} catch (Exception e) {
+//			return new ResponseEntity<APIBaseResponse>(HttpStatus.BAD_REQUEST);
+//		}
+//	}
+
+	@RequestMapping(value = "trackPost/{userSecret:.+}", method = RequestMethod.POST)
 	@ResponseBody
-	public ResponseEntity<APIBaseResponse> testService2(@RequestBody APITrackerPost req) {
+	public ResponseEntity<APIBaseResponse> userPost(@PathVariable("userSecret") String userSecret, @RequestBody APITrackerPost req) {
 		inputLogger(req);
 		try {
-			return new ResponseEntity<APIBaseResponse>(testEngine.handleTrackerPost(req), HttpStatus.OK);
+			APIBaseResponse res = testEngine.handleTrackingPost(userSecret, req);
+			if(res != null) {
+				return new ResponseEntity<APIBaseResponse>(res, HttpStatus.OK);
+			}
+			return new ResponseEntity<APIBaseResponse>(new APIBaseResponse("SECRET_INVALID", ""), HttpStatus.BAD_REQUEST);					
 		} catch (Exception e) {
 			return new ResponseEntity<APIBaseResponse>(HttpStatus.BAD_REQUEST);
 		}
-	}
-
+	}	
+	
 	@RequestMapping(value = "gpsQuery", method = RequestMethod.POST)
 	@ResponseBody
-	public ResponseEntity<APITrackQueryResponse> queryGPS(@RequestBody APITrackQuery req) {
+	public ResponseEntity<APIBaseResponse> queryGPS(@RequestBody APITrackQuery req) {
 		inputLogger(req);
-		return new ResponseEntity<APITrackQueryResponse>(testEngine.handleTrackerQuery(req), HttpStatus.OK);
+		return new ResponseEntity<APIBaseResponse>(testEngine.handleTrackerQuery(req), HttpStatus.OK);
 	}
 	
 //	@RequestMapping(value = "devices", method = RequestMethod.POST)

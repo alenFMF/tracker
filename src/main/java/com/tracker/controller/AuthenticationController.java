@@ -14,7 +14,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.user.APIAuthenticateRequest;
 import com.tracker.apientities.user.APIUserRegisterRequest;
-import com.tracker.apientities.user.APIUserResetPasswordRequest;
+import com.tracker.apientities.user.APIUserResetPassword;
+import com.tracker.apientities.user.APIUserUpdate;
 import com.tracker.apientities.user.APIUsersQuery;
 import com.tracker.apientities.user.APIUsersQueryResponse;
 import com.tracker.engine.AuthenticationEngine;
@@ -38,11 +39,18 @@ public class AuthenticationController {
 	
 	@RequestMapping(value = "resetPassword", method = RequestMethod.POST)
 	@ResponseBody
-	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIUserResetPasswordRequest req) {
+	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIUserResetPassword req) {
 		inputLogger(req);
 		return new ResponseEntity<APIBaseResponse>(authEngine.resetPassword(req), HttpStatus.OK);
 	}		
 
+	@RequestMapping(value = "update", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIBaseResponse> update(@RequestBody APIUserUpdate req) {
+		inputLogger(req);
+		return new ResponseEntity<APIBaseResponse>(authEngine.update(req), HttpStatus.OK);
+	}	
+	
 	@RequestMapping(value = "authenticate", method = RequestMethod.POST)
 	@ResponseBody
 	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIAuthenticateRequest req) {
