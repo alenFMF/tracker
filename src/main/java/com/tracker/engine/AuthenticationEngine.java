@@ -6,23 +6,22 @@ import java.util.stream.Collectors;
 
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
+import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.tracker.apientities.APIBaseResponse;
-import com.tracker.apientities.devices.APIDeviceQuery;
-import com.tracker.apientities.devices.APIDeviceResponse;
 import com.tracker.apientities.user.APIAuthenticateRequest;
 import com.tracker.apientities.user.APIAuthenticateResponse;
 import com.tracker.apientities.user.APIUserProfile;
 import com.tracker.apientities.user.APIUserProfileResponse;
 import com.tracker.apientities.user.APIUserRegisterRequest;
 import com.tracker.apientities.user.APIUserResetPassword;
+import com.tracker.apientities.user.APIUserResetPasswordResponse;
 import com.tracker.apientities.user.APIUserUpdate;
 import com.tracker.apientities.user.APIUsersQuery;
 import com.tracker.apientities.user.APIUsersQueryResponse;
-import com.tracker.db.DeviceRecord;
 import com.tracker.db.TrackingUser;
 import com.tracker.utils.SessionKeeper;
 
@@ -58,31 +57,46 @@ public class AuthenticationEngine {
 	
 	public APIBaseResponse resetPassword(APIUserResetPassword req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
-			TrackingUser user = getUser(sk, req.userId);
-			if(user == null) {		
-				return new APIBaseResponse("NO_SUCH_USER", "");
-			}
-			user.setPassword(req.newPassword, passwordEncoder);
-			sk.saveOrUpdate(user);	
-			sk.commit();
-//			if(req.resetToken != null && tokens.checkPasswordResetToken(req.userId, req.resetToken)) {
-//				if(!this.isPasswordOk(req.newPassword)) {
-//					return new APIBaseResponse("PASSWORD_NOT_COMPLEX_ENOUGH", "");
-//				}
-//				user.setPassword(req.newPassword, passwordEncoder);
-//				tokens.clearPasswordResetToken(req.resetToken);
-//				return new APIBaseResponse();
-//			}
-//			String resetToken = tokens.passwordResetUser(user.getUserId());
-//			sendTokenLinkEmail(user.getUserId(), resetToken);
+			TrackingUser user = null;
 			
+			if(req.resetToken == null) {
+				user = getUser(sk, req.userId);
+				if(user == null) {		
+					return new APIBaseResponse("NO_SUCH_USER", "");
+				}				
+				String resetToken = tokens.passwordResetUser(req.userId);
+				return new APIUserResetPasswordResponse(null, resetToken);
+			}
+			
+			if(req.resetToken != null) {
+				String userId = tokens.userIdForResetToken(req.resetToken);
+				if(req.token == null) {
+					return new APIBaseResponse("AUTH_TOKEN_MISSING", "");					
+				}
+				TrackingUser tokenUser = getTokenUser(sk, req.token);
+				if(tokenUser == null) {
+					return new APIBaseResponse("WRONG_TOKEN", "");										
+				}
+				if(!tokenUser.getAdmin()) {
+					return new APIBaseResponse("TOKEN_NOT_OF_ADMIN", "");
+				}
+				if(userId == null) {
+					return new APIBaseResponse("INVALID_OR_EXPIRED_RESET_TOKEN", "");
+				}
+				if(!this.isPasswordOk(req.newPassword)) {
+					return new APIBaseResponse("PASSWORD_NOT_COMPLEX_ENOUGH", "");
+				}
+				user = getUser(sk, userId);
+				user.setPassword(req.newPassword, passwordEncoder);
+				tokens.clearPasswordResetToken(req.resetToken);				
+				sk.saveOrUpdate(user);	
+				sk.commit();
+				return new APIUserResetPasswordResponse(userId, null);
+			}			
 		}		
 		return new APIBaseResponse();
 	}
-	
-	private void sendTokenLinkEmail(String userId, String resetToken) {
-		//TODO
-	}
+
 	
 	private APIBaseResponse processPasswordChange(TrackingUser user, TrackingUser tokenUser, String oldPassword, String newPassword) {
 		if(newPassword == null) {
@@ -108,15 +122,20 @@ public class AuthenticationEngine {
 		return null;
 	}
 
-	private APIBaseResponse processSecretChange(TrackingUser user, TrackingUser tokenUser, String secret) {
+	private APIBaseResponse processSecretChange(SessionKeeper sk, TrackingUser user, TrackingUser tokenUser, String secret) {
 		if(secret == null) return null;
 		
-		if(!this.isSecretOk(secret)) {
+		
+		if(!this.isSecretOk(sk, secret)) {
 			return new APIBaseResponse("SECRET_NOT_OK", "");
 		}
 			
 		if(tokenUser != null && tokenUser.getAdmin() == true) {
-			user.setPostingSecret(secret);
+			if(secret == "") {  // null means delete secret
+				user.setPostingSecret(null);
+			} else { 
+				user.setPostingSecret(secret);
+			}
 			return null;
 		} 
 		if(user != null && tokenUser != null) { 
@@ -131,13 +150,14 @@ public class AuthenticationEngine {
 	
 	private APIBaseResponse processMakeAdmin(TrackingUser user, TrackingUser tokenUser, boolean makeAdmin) {
 		if(tokenUser != null && tokenUser.getAdmin()) {
-			user.setAdmin(true);
+			user.setAdmin(makeAdmin);
 			return null;
 		} 	
 		return new APIBaseResponse("SET_ADMIN_DENIED", "Admin status can be changed by admin only.");		
 	}
 	
 	public TrackingUser getUser(SessionKeeper sk, String userId) {
+		if(userId == null) return null;
 		return (TrackingUser) sk.createCriteria(TrackingUser.class).add(Restrictions.eq("userId", userId)).uniqueResult();
 	}
 	
@@ -160,8 +180,9 @@ public class AuthenticationEngine {
 			APIBaseResponse resp = processPasswordChange(user, tokenUser, req.oldPassword, req.newPassword);
 			if(resp != null) return resp;
 			
-			// secret change
-			resp = processSecretChange(user, tokenUser, req.secret);
+			// secret change - TODO in future secrets should not be changable but generated due to security reasons.
+			// Attack: one user finds occupied secret and starts to post data
+			resp = processSecretChange(sk, user, tokenUser, req.secret);
 			if(resp != null) return resp;
 			
 			// admin change
@@ -180,8 +201,10 @@ public class AuthenticationEngine {
 		return password.length() > 5;
 	} 
 	
-	private boolean isSecretOk(String secret) {
-		return 	secret.length() > 8;
+	private boolean isSecretOk(SessionKeeper sk, String secret) {
+		if(secret.length() < 8 && secret.length() > 0) return false;
+		int n = ((Number) sk.createCriteria(TrackingUser.class).add(Restrictions.eq("postingSecret", secret)).setProjection(Projections.rowCount()).uniqueResult()).intValue(); 
+		return n == 0;		
 	}
 	
 	public APIAuthenticateResponse authenticate(APIAuthenticateRequest req) {
@@ -189,7 +212,6 @@ public class AuthenticationEngine {
 			return new APIAuthenticateResponse(tokens.authenticate(sk, req.userId, req.password, passwordEncoder)); 
 		}			
 	}
-	
 	
 	@SuppressWarnings("unchecked")
 	public APIBaseResponse userProfile(APIUserProfile req) {

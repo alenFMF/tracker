@@ -1,6 +1,5 @@
 package com.tracker.engine;
 
-import java.util.Date;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.hibernate.criterion.Restrictions;
@@ -16,7 +15,7 @@ import java.security.SecureRandom;
 public class TokenStorage {
 	private Map<String, UserAuthentication> tokenToAuth = new ConcurrentHashMap<>();	
 	private Map<String, UserAuthentication> userToAuth = new ConcurrentHashMap<>();	
-	private Map<String, String> passwordResetTokens = new ConcurrentHashMap<>();
+	private Map<String, ResetToken> passwordResetTokens = new ConcurrentHashMap<>();
 	private SecureRandom generator;
 	private int tokenLength = 24;
 	
@@ -25,17 +24,23 @@ public class TokenStorage {
 	}
 	
 	private void invalidate(UserAuthentication auth) {
-		userToAuth.remove(auth.userId);
-		tokenToAuth.remove(auth.token);					
+		userToAuth.remove(auth.getUserId());
+		tokenToAuth.remove(auth.getToken());					
 	}
 	
+	private void invalidate(ResetToken rt) {
+		passwordResetTokens.remove(rt.getToken());		
+	}	
+	
 	private boolean checkOrInvalidate(UserAuthentication auth) {
-		if(auth.validUntil.after(new Date())) {
+		if(auth.isValid()) {
 			invalidate(auth);
 			return false;
 		}		
 		return true;
 	}
+	
+	
 	public String authenticatedUserForToken(String token) {
 		if(!tokenToAuth.containsKey(token)) {
 			return null;
@@ -44,7 +49,7 @@ public class TokenStorage {
 		if(!checkOrInvalidate(auth)) {
 			return null;
 		}
-		return auth.userId;
+		return auth.getUserId();
 	}
 	
 	public boolean isAuthenticated(String userId) {
@@ -53,10 +58,8 @@ public class TokenStorage {
 	}
 	
 	private String reauthenticateUser(String userId) {	
-		UserAuthentication auth = new UserAuthentication();
 		String token = generateToken();
-		auth.setUserId(userId); 
-		auth.setToken(token);
+		UserAuthentication auth = new UserAuthentication(userId, token);
 		userToAuth.put(userId, auth);
 		tokenToAuth.put(token, auth);
 		return token;
@@ -75,13 +78,22 @@ public class TokenStorage {
 	}
 	
 	public String passwordResetUser(String userId) {
-		String pToken = generateToken();
-		passwordResetTokens.put(pToken, userId);
-		return pToken;
+		// user must exist!
+		String token = generateToken();
+		ResetToken rt = new ResetToken(userId, token);
+		passwordResetTokens.put(token, rt);
+		return token;
 	}
 	
-	public boolean checkPasswordResetToken(String userId, String token) {
-		return passwordResetTokens.get(token) == userId;
+
+	public String userIdForResetToken(String token) {	
+		ResetToken rt = passwordResetTokens.get(token);
+		if(rt == null) return null;
+		if(!rt.isValid()) {
+			invalidate(rt);
+			return null;
+		}
+		return rt.getUserId();
 	}
 	
 	public void clearPasswordResetToken(String token) {

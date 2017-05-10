@@ -11,6 +11,7 @@ public class TrackingUser extends BaseEntity {
 	
 	@Column(unique = true) 
 	public String postingSecret;
+	
 	public String getUserId() {
 		return userId;
 	}
