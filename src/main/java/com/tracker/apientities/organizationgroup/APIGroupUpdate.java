@@ -1,5 +1,9 @@
 package com.tracker.apientities.organizationgroup;
 
-public class APIGroupUpdate {
+import java.util.List;
 
+public class APIGroupUpdate {
+	public String token;  
+	public String groupId;
+	public String description;	
 }

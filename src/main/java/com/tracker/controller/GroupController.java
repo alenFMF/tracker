@@ -12,13 +12,18 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.apientities.APIBaseResponse;
-import com.tracker.apientities.vehicle.APIVehicleQuery;
-import com.tracker.apientities.vehicle.APIVehicleQueryResponse;
-import com.tracker.apientities.vehicle.APIVehicleRegister;
-import com.tracker.apientities.vehicle.APIVehicleUpdate;
+import com.tracker.apientities.organizationgroup.APIGroupQuery;
+import com.tracker.apientities.organizationgroup.APIGroupQueryResponse;
+import com.tracker.apientities.organizationgroup.APIGroupRegister;
+import com.tracker.apientities.organizationgroup.APIGroupUpdate;
+import com.tracker.apientities.organizationgroup.APIShareOrInvite;
+import com.tracker.apientities.organizationgroup.APIShareOrInviteResponse;
+import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentQuery;
+import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentResponse;
+import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentUpdate;
+import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentUpdateResponse;
 import com.tracker.engine.AuthenticationEngine;
 import com.tracker.engine.GroupEngine;
-import com.tracker.engine.VehicleEngine;
 
 @Controller
 @RequestMapping("group")
@@ -31,26 +36,49 @@ public class GroupController {
 	@Autowired
 	GroupEngine groupEngine;
 	
-//	@RequestMapping(value = "register", method = RequestMethod.POST)
-//	@ResponseBody
-//	public ResponseEntity<APIBaseResponse> registerVehicle(@RequestBody APIVehicleRegister req) {
-//		inputLogger(req);
-//		return new ResponseEntity<APIBaseResponse>(vehicleEngine.register(req), HttpStatus.OK);
-//	}	
-//	
-//	@RequestMapping(value = "update", method = RequestMethod.POST)
-//	@ResponseBody
-//	public ResponseEntity<APIBaseResponse> updateVehicle(@RequestBody APIVehicleUpdate req) {
-//		inputLogger(req);
-//		return new ResponseEntity<APIBaseResponse>(vehicleEngine.update(req), HttpStatus.OK);
-//	}	
-//
-//	@RequestMapping(value = "list", method = RequestMethod.POST)
-//	@ResponseBody
-//	public ResponseEntity<APIVehicleQueryResponse> listVehicles(@RequestBody APIVehicleQuery req) {
-//		inputLogger(req);
-//		return new ResponseEntity<APIVehicleQueryResponse>(vehicleEngine.listVehicles(req), HttpStatus.OK);
-//	}		
+	@RequestMapping(value = "register", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIBaseResponse> registerGroup(@RequestBody APIGroupRegister req) {
+		inputLogger(req);
+		return new ResponseEntity<APIBaseResponse>(groupEngine.register(req), HttpStatus.OK);
+	}	
+	
+	@RequestMapping(value = "update", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIBaseResponse> updateGroup(@RequestBody APIGroupUpdate req) {
+		inputLogger(req);
+		return new ResponseEntity<APIBaseResponse>(groupEngine.update(req), HttpStatus.OK);
+	}	
+
+	@RequestMapping(value = "list", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIGroupQueryResponse> listGroups(@RequestBody APIGroupQuery req) {
+		inputLogger(req);
+		return new ResponseEntity<APIGroupQueryResponse>(groupEngine.list(req), HttpStatus.OK);
+	}		
+
+	@RequestMapping(value = "link/register", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIShareOrInviteResponse> registerLink(@RequestBody APIShareOrInvite req) {
+		inputLogger(req);
+		return new ResponseEntity<APIShareOrInviteResponse>(groupEngine.registerLinks(req), HttpStatus.OK);
+	}		
+
+	@RequestMapping(value = "link/update", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIUserGroupAssignmentUpdateResponse> updateLink(@RequestBody APIUserGroupAssignmentUpdate req) {
+		inputLogger(req);
+		return new ResponseEntity<APIUserGroupAssignmentUpdateResponse>(groupEngine.updateLink(req), HttpStatus.OK);
+	}
+	
+	@RequestMapping(value = "link/list", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIUserGroupAssignmentResponse> listLinks(@RequestBody APIUserGroupAssignmentQuery req) {
+		inputLogger(req);
+		return new ResponseEntity<APIUserGroupAssignmentResponse>(groupEngine.listLinks(req), HttpStatus.OK);
+	}
+
+
 	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {

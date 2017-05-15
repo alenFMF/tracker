@@ -8,5 +8,5 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 public class APITrackDetail {
 	public String userId;
 	public String deviceUuid;
-	public List<APITrackSample> samples;
+	public List<APITrackSample> samples;	
 }

@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.user.APIAuthenticateRequest;
 import com.tracker.apientities.user.APIAuthenticateResponse;
+import com.tracker.apientities.user.APIUserDetail;
 import com.tracker.apientities.user.APIUserProfile;
 import com.tracker.apientities.user.APIUserProfileResponse;
 import com.tracker.apientities.user.APIUserRegisterRequest;
@@ -55,46 +56,52 @@ public class AuthenticationEngine {
 		}		
 	}
 	
-	public APIBaseResponse resetPassword(APIUserResetPassword req) {
+	public APIUserResetPasswordResponse resetPassword(APIUserResetPassword req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
 			TrackingUser user = null;
 			
 			if(req.resetToken == null) {
 				user = getUser(sk, req.userId);
 				if(user == null) {		
-					return new APIBaseResponse("NO_SUCH_USER", "");
+					return new APIUserResetPasswordResponse("NO_SUCH_USER", "");
 				}				
 				String resetToken = tokens.passwordResetUser(req.userId);
-				return new APIUserResetPasswordResponse(null, resetToken);
+				APIUserResetPasswordResponse res = new APIUserResetPasswordResponse();
+				res.userId = null;
+				res.resetToken = resetToken;
+				return res;
 			}
 			
 			if(req.resetToken != null) {
 				String userId = tokens.userIdForResetToken(req.resetToken);
 				if(req.token == null) {
-					return new APIBaseResponse("AUTH_TOKEN_MISSING", "");					
+					return new APIUserResetPasswordResponse("AUTH_TOKEN_MISSING", "");					
 				}
 				TrackingUser tokenUser = getTokenUser(sk, req.token);
 				if(tokenUser == null) {
-					return new APIBaseResponse("WRONG_TOKEN", "");										
+					return new APIUserResetPasswordResponse("WRONG_TOKEN", "");										
 				}
 				if(!tokenUser.getAdmin()) {
-					return new APIBaseResponse("TOKEN_NOT_OF_ADMIN", "");
+					return new APIUserResetPasswordResponse("TOKEN_NOT_OF_ADMIN", "");
 				}
 				if(userId == null) {
-					return new APIBaseResponse("INVALID_OR_EXPIRED_RESET_TOKEN", "");
+					return new APIUserResetPasswordResponse("INVALID_OR_EXPIRED_RESET_TOKEN", "");
 				}
 				if(!this.isPasswordOk(req.newPassword)) {
-					return new APIBaseResponse("PASSWORD_NOT_COMPLEX_ENOUGH", "");
+					return new APIUserResetPasswordResponse("PASSWORD_NOT_COMPLEX_ENOUGH", "");
 				}
 				user = getUser(sk, userId);
 				user.setPassword(req.newPassword, passwordEncoder);
 				tokens.clearPasswordResetToken(req.resetToken);				
 				sk.saveOrUpdate(user);	
 				sk.commit();
-				return new APIUserResetPasswordResponse(userId, null);
+				APIUserResetPasswordResponse res = new APIUserResetPasswordResponse();
+				res.userId = userId;
+				res.resetToken = null;
+				return res;
 			}			
 		}		
-		return new APIBaseResponse();
+		return new APIUserResetPasswordResponse();
 	}
 
 	
@@ -234,11 +241,18 @@ public class AuthenticationEngine {
 	}	
 	@SuppressWarnings("unchecked")
 	public APIUsersQueryResponse listUsers(APIUsersQuery req) {
-		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {						
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
+			TrackingUser tokenUser = getTokenUser(sk, req.token);
+			if(tokenUser == null) {
+				return new APIUsersQueryResponse("AUTH_ERROR", "Invalid token.");
+			}
+			if(!tokenUser.getAdmin()) {
+				return new APIUsersQueryResponse("AUTH_ERROR", "Token user does not have admin privileges.");				
+			}
 			Criteria c = sk.createCriteria(TrackingUser.class);						
 			List<TrackingUser> recs = c.list();	
-			List<String> users = recs.stream()
-				.map(x -> x.userId)
+			List<APIUserDetail> users = recs.stream()
+				.map(x -> new APIUserDetail(x.getUserId(), x.getAdmin()))
 				.collect(Collectors.toList());
 			APIUsersQueryResponse res = new APIUsersQueryResponse(users);
 			return res;

@@ -5,10 +5,13 @@ import java.util.List;
 import com.tracker.apientities.APIBaseResponse;
 
 public class APIUsersQueryResponse extends APIBaseResponse {
-	public List<String> users;
+	public List<APIUserDetail> users;
 	
-	public APIUsersQueryResponse(List<String> users) {
+	public APIUsersQueryResponse(List<APIUserDetail> users) {
 		this.users = users;
 	}
-
+	
+	public APIUsersQueryResponse(String status, String errorMessage) {
+		super(status, errorMessage);
+	}
 }

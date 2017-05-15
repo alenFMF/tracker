@@ -1,5 +1,5 @@
 package com.tracker.apientities.organizationgroup;
 
-public class APIGroupAdd {
+public class APIVehicleGroupAssignmentDetail {
 
 }

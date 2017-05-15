@@ -8,8 +8,13 @@ public class APIUserResetPasswordResponse extends APIBaseResponse {
 	public String resetToken;
 	public String userId;
 	
-	public APIUserResetPasswordResponse(String userId, String token) {
-		this.userId = null;
-		this.resetToken = token;
-	}	
+	public APIUserResetPasswordResponse() {
+		super();
+	}
+	
+	public APIUserResetPasswordResponse(String status, String errorMessage) {
+		super(status, errorMessage);
+	}
+	
+	
 }
