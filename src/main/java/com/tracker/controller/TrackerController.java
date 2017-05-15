@@ -19,6 +19,8 @@ import com.tracker.apientities.tracks.APITrackerPost;
 import com.tracker.engine.AuthenticationEngine;
 import com.tracker.engine.TestEngine;
 
+import io.swagger.annotations.ApiOperation;
+
 
 @Controller
 @RequestMapping("tracker")
@@ -63,6 +65,7 @@ public class TrackerController {
 //	}
 
 	@RequestMapping(value = "trackPost/{userSecret:.+}", method = RequestMethod.POST)
+	@ApiOperation(value = "Post sample(s).", notes = "Route for posting GPS samples compatible with react-native-background-geolocation.")
 	@ResponseBody
 	public ResponseEntity<APIBaseResponse> userPost(@PathVariable("userSecret") String userSecret, @RequestBody APITrackerPost req) {
 		inputLogger(req);
@@ -78,6 +81,10 @@ public class TrackerController {
 	}	
 	
 	@RequestMapping(value = "gpsQuery", method = RequestMethod.POST)
+	@ApiOperation(value = "Get GPS track subject to filters.", notes = "For a user with a token it lists user tracks in time between startDate "
+			+ "and endDate. A list of required userIds can be provided and requiredAccuracy in meters. If groupId	!= null then"
+			+ "token user must be admin in the group listing user tracks for that group. If the list userIds is empty and groupId == null"
+			+ "tracks for token user (in personal group)")
 	@ResponseBody
 	public ResponseEntity<APIBaseResponse> queryGPS(@RequestBody APITrackQuery req) {
 		inputLogger(req);

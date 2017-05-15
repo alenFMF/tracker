@@ -8,7 +8,7 @@ public class APITrackQuery {
 	// only one of lists can be used as a filter. Others null or empty
 	public List<String> userIds;
 	
-    public String organizationGroup;  // query can be done for one organization group only. Mandatory.
+    public String groupId;  // query can be done for one organization group only. Mandatory.
 	
 	public Date startDate;
 	public Date endDate;

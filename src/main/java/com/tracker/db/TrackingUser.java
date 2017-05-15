@@ -1,7 +1,13 @@
 package com.tracker.db;
 
+import java.util.List;
+
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.ManyToMany;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
+
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Entity
@@ -11,6 +17,15 @@ public class TrackingUser extends BaseEntity {
 	
 	@Column(unique = true) 
 	public String postingSecret;
+
+	@Column(nullable=false)
+	public Boolean admin = false;
+	
+	@OneToMany(mappedBy="user")
+	private List<UserGroupAssignment> userGroupAssignments;
+	
+	@OneToOne
+	public OrganizationGroup personalGroup;
 	
 	public String getUserId() {
 		return userId;
@@ -20,9 +35,6 @@ public class TrackingUser extends BaseEntity {
 		this.userId = userId;
 	}
 
-	@Column(nullable=false)
-	public Boolean admin = false;
-	
 	public String getPostingSecret() {
 		return postingSecret;
 	}
@@ -37,6 +49,22 @@ public class TrackingUser extends BaseEntity {
 
 	public void setPostingSecret(String postingSecret) {
 		this.postingSecret = postingSecret;
+	}
+	
+	public OrganizationGroup getPersonalGroup() {
+		return personalGroup;
+	}
+
+	public void setPersonalGroup(OrganizationGroup personalGroup) {
+		this.personalGroup = personalGroup;
+	}
+	
+	public List<UserGroupAssignment> getUserGroupAssignments() {
+		return userGroupAssignments;
+	}
+
+	public void setUserGroupAssignments(List<UserGroupAssignment> userGroupAssignments) {
+		this.userGroupAssignments = userGroupAssignments;
 	}
 
 	public TrackingUser() {}

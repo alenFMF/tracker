@@ -5,7 +5,9 @@ import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 
 @Entity
 public class OrganizationGroup extends BaseEntity  {
@@ -13,10 +15,15 @@ public class OrganizationGroup extends BaseEntity  {
 	@Column(unique = true) 
 	public String groupId;
 	public String description;
-	public String creatorId;
-	public Boolean privateGroup; // true (default) if inclusion has to be confirmed by group admin
-	public String personalGroupUserId; // null except for personal groups
 
+	@ManyToOne
+	public TrackingUser creator;
+	
+	public Boolean privateGroup; // true (default) if inclusion has to be confirmed by group admin
+
+	@OneToOne
+	public TrackingUser personalGroupUser;
+	
 	public Date timestamp; // time of creation;
 
 	@OneToMany(mappedBy = "group")
@@ -39,14 +46,6 @@ public class OrganizationGroup extends BaseEntity  {
 
 	public void setDescription(String description) {
 		this.description = description;
-	}
-
-	public String getCreatorId() {
-		return creatorId;
-	}
-
-	public void setCreatorId(String creatorId) {
-		this.creatorId = creatorId;
 	}
 
 	public Date getTimestamp() {
@@ -81,13 +80,24 @@ public class OrganizationGroup extends BaseEntity  {
 		this.privateGroup = privateGroup;
 	}
 
-	public String getPersonalGroupUserId() {
-		return personalGroupUserId;
+	public TrackingUser getCreator() {
+		return creator;
 	}
 
-	public void setPersonalGroupUserId(String personalGroupUserId) {
-		this.personalGroupUserId = personalGroupUserId;
+	public void setCreator(TrackingUser creator) {
+		this.creator = creator;
+	}
+
+	public TrackingUser getPersonalGroupUser() {
+		return personalGroupUser;
+	}
+
+	public void setPersonalGroupUser(TrackingUser personalGroupUser) {
+		this.personalGroupUser = personalGroupUser;
 	}
 	
-
+	public OrganizationGroup() {
+		super();
+		this.privateGroup = false;
+	}
 }

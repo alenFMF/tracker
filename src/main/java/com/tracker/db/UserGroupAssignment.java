@@ -21,7 +21,7 @@ public class UserGroupAssignment extends BaseEntity {
 	public Date untilDate; 
 	public String groupRole; // USER, ADMIN
 	public String inviteType; // USER, GROUP who invites
-	public String grant; // ALLOW, DENY - if untilDate == null or < now, group has to agree.
+	public String grantPermission; // ALLOW, DENY - if untilDate == null or < now, group has to agree.
 	public Date timestamp; // if accept == true is set, otherwise not. 
 	public Date userAction; 
 	public Date groupAction;
@@ -41,10 +41,10 @@ public class UserGroupAssignment extends BaseEntity {
 		this.inviteType = inviteType;
 	}
 	public String getGrant() {
-		return grant;
+		return grantPermission;
 	}
 	public void setGrant(String grant) {
-		this.grant = grant;
+		this.grantPermission = grant;
 	}
 	public String getPeriodic() {
 		return periodic;
@@ -113,7 +113,23 @@ public class UserGroupAssignment extends BaseEntity {
 	public void setGroupAction(Date groupAction) {
 		this.groupAction = groupAction;
 	}
-	
+
+	public void setAsPersonalGroup(TrackingUser user, OrganizationGroup group, Date now) {
+		this.group = group;
+		this.user = user;
+		this.groupUser = user;
+		this.accepted = true;
+		this.fromDate = now;
+		this.untilDate = null;
+		this.groupRole = "ADMIN";
+		this.inviteType = "USER";
+		this.grantPermission = "ALLOW";
+		this.timestamp = now;
+		this.userAction = now;
+		this.groupAction = now;
+		this.periodic = null;
+		this.repeatTimes = null;
+	}
 }
 
 //ADMIN - can manage group, can watch tracks of others, does not share his own track.

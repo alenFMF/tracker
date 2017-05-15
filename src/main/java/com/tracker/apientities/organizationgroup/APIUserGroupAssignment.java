@@ -2,10 +2,8 @@ package com.tracker.apientities.organizationgroup;
 
 import java.util.Date;
 
-import com.tracker.db.UserGroupAssignment;
-
 public class APIUserGroupAssignment {
-	public String groupId;
+	public String groupId; 
 	public String userId;
 	public String inviteType; //USER, GROUP
 	public Date fromDate;

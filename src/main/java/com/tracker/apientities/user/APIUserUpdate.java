@@ -8,6 +8,6 @@ public class APIUserUpdate {
 	public String userId;
 	public String oldPassword;
 	public String newPassword;
-	public String secret;
+	public Boolean resetSecret;
 	public Boolean makeAdmin;
 }

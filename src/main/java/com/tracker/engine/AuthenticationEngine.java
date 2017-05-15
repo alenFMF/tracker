@@ -1,12 +1,12 @@
 package com.tracker.engine;
 
 import java.security.NoSuchAlgorithmException;
+import java.util.Date;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
-import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -20,10 +20,14 @@ import com.tracker.apientities.user.APIUserProfileResponse;
 import com.tracker.apientities.user.APIUserRegisterRequest;
 import com.tracker.apientities.user.APIUserResetPassword;
 import com.tracker.apientities.user.APIUserResetPasswordResponse;
+import com.tracker.apientities.user.APIUserSecret;
+import com.tracker.apientities.user.APIUserSecretResponse;
 import com.tracker.apientities.user.APIUserUpdate;
 import com.tracker.apientities.user.APIUsersQuery;
 import com.tracker.apientities.user.APIUsersQueryResponse;
+import com.tracker.db.OrganizationGroup;
 import com.tracker.db.TrackingUser;
+import com.tracker.db.UserGroupAssignment;
 import com.tracker.utils.SessionKeeper;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -48,7 +52,22 @@ public class AuthenticationEngine {
 			TrackingUser user = (TrackingUser) sk.createCriteria(TrackingUser.class).add(Restrictions.eq("userId", req.userId)).uniqueResult();
 			if(user == null) {
 				user = new TrackingUser(req.userId, req.password, passwordEncoder);
+
+				Date now = new Date();
+				OrganizationGroup group = new OrganizationGroup();
+				group.setGroupId(req.userId);
+				group.setDescription(req.userId);
+				group.setCreator(user); 
+				group.setPersonalGroupUser(user);
+				user.setPersonalGroup(group);
+				group.setTimestamp(now);
+				
+				UserGroupAssignment asgn = new UserGroupAssignment();
+				asgn.setAsPersonalGroup(user, group, now);
+				
 				sk.save(user);
+				sk.save(group);
+				sk.save(asgn);
 				sk.commit();
 				return new APIBaseResponse();
 			}
@@ -118,7 +137,7 @@ public class AuthenticationEngine {
 			return null;
 		} 
 				
-		if(tokenUser != null && user != null && tokenUser.getUserId() == user.getUserId()) {
+		if(tokenUser != null && user != null && tokenUser.getUserId().equals(user.getUserId())) {
 			if(user.checkPassword(oldPassword, passwordEncoder)) {
 				user.setPassword(newPassword, passwordEncoder);
 				return null;
@@ -129,24 +148,17 @@ public class AuthenticationEngine {
 		return null;
 	}
 
-	private APIBaseResponse processSecretChange(SessionKeeper sk, TrackingUser user, TrackingUser tokenUser, String secret) {
-		if(secret == null) return null;
-		
-		
-		if(!this.isSecretOk(sk, secret)) {
-			return new APIBaseResponse("SECRET_NOT_OK", "");
+	private APIBaseResponse processSecretChange(SessionKeeper sk, TrackingUser user, TrackingUser tokenUser, Boolean secretChange) {
+		if(secretChange == null || !secretChange) {
+			return null;
 		}
-			
+		String secret = tokens.generateToken();	
 		if(tokenUser != null && tokenUser.getAdmin() == true) {
-			if(secret == "") {  // null means delete secret
-				user.setPostingSecret(null);
-			} else { 
-				user.setPostingSecret(secret);
-			}
+			user.setPostingSecret(secret);
 			return null;
 		} 
 		if(user != null && tokenUser != null) { 
-			if(user.getUserId() == tokenUser.getUserId()) {
+			if(user.getUserId().equals(tokenUser.getUserId())) {
 				user.setPostingSecret(secret);
 				return null;		
 			}
@@ -189,7 +201,7 @@ public class AuthenticationEngine {
 			
 			// secret change - TODO in future secrets should not be changable but generated due to security reasons.
 			// Attack: one user finds occupied secret and starts to post data
-			resp = processSecretChange(sk, user, tokenUser, req.secret);
+			resp = processSecretChange(sk, user, tokenUser, req.resetSecret);
 			if(resp != null) return resp;
 			
 			// admin change
@@ -197,7 +209,7 @@ public class AuthenticationEngine {
 				resp = processMakeAdmin(user, tokenUser, req.makeAdmin);
 				if(resp != null) return resp;
 			}
-
+			
 			sk.saveOrUpdate(user);	
 			sk.commit();
 		}		
@@ -208,11 +220,11 @@ public class AuthenticationEngine {
 		return password.length() > 5;
 	} 
 	
-	private boolean isSecretOk(SessionKeeper sk, String secret) {
-		if(secret.length() < 8 && secret.length() > 0) return false;
-		int n = ((Number) sk.createCriteria(TrackingUser.class).add(Restrictions.eq("postingSecret", secret)).setProjection(Projections.rowCount()).uniqueResult()).intValue(); 
-		return n == 0;		
-	}
+//	private boolean isSecretOk(SessionKeeper sk, String secret) {
+//		if(secret.length() < 8 && secret.length() > 0) return false;
+//		int n = ((Number) sk.createCriteria(TrackingUser.class).add(Restrictions.eq("postingSecret", secret)).setProjection(Projections.rowCount()).uniqueResult()).intValue(); 
+//		return n == 0;		
+//	}
 	
 	public APIAuthenticateResponse authenticate(APIAuthenticateRequest req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {				
@@ -258,4 +270,19 @@ public class AuthenticationEngine {
 			return res;
 		}
 	}	
+	
+	public APIUserSecretResponse getPostingSecret(APIUserSecret req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
+			TrackingUser tokenUser = getTokenUser(sk, req.token);
+			if(tokenUser == null) {
+				return new APIUserSecretResponse("AUTH_ERROR", "Invalid token.");
+			}
+			if(tokenUser.getPostingSecret() == null) {
+				processSecretChange(sk, tokenUser, tokenUser, true);
+				sk.saveOrUpdate(tokenUser);
+				sk.commit();
+			}
+			return new APIUserSecretResponse(tokenUser.getPostingSecret());
+		}		
+	}
 }

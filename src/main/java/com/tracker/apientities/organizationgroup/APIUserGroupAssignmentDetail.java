@@ -30,7 +30,9 @@ public class APIUserGroupAssignmentDetail {
 		this.id = assignment.getId();		
 		this.groupId = assignment.getGroup().getGroupId();
 		this.userId = assignment.getUser().getUserId();
-		this.groupUserId = assignment.getGroupUser().getUserId();
+		if(assignment.getGroupUser() != null) {
+			this.groupUserId = assignment.getGroupUser().getUserId();
+		}
 		this.accepted = assignment.getAccepted();
 		this.fromDate = assignment.getFromDate();
 		this.untilDate = assignment.getUntilDate();
