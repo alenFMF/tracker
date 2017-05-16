@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.apientities.APIBaseResponse;
-import com.tracker.apientities.user.APIUserRegisterRequest;
+import com.tracker.apientities.user.APIUserRegister;
 import com.tracker.apientities.vehicle.APIVehicleQuery;
 import com.tracker.apientities.vehicle.APIVehicleQueryResponse;
 import com.tracker.apientities.vehicle.APIVehicleRegister;

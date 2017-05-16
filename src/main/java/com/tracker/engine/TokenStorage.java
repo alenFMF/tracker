@@ -5,6 +5,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
+import com.tracker.apientities.user.APIUserRegisterResponse;
 import com.tracker.db.TrackingUser;
 import com.tracker.utils.SessionKeeper;
 
@@ -58,18 +59,44 @@ public class TokenStorage {
 	}
 	
 	private String reauthenticateUser(String userId) {	
-		String token = generateToken();
+		String token = null;
+		while(true) {   // ensure unique token
+			token = generateToken();
+			if(!userToAuth.containsKey(token)) break;
+		}
+		
 		UserAuthentication auth = new UserAuthentication(userId, token);
 		userToAuth.put(userId, auth);
 		tokenToAuth.put(token, auth);
 		return token;
 	}
 	
-	public String authenticate(SessionKeeper sk, String userId, String password, PasswordEncoder passwordEncoder) {
+	public String authenticate(SessionKeeper sk, String userId, String password, PasswordEncoder passwordEncoder, AuthProviderFactory authFactory) {
 		TrackingUser user = (TrackingUser)sk.createCriteria(TrackingUser.class).add(Restrictions.eq("userId", userId)).uniqueResult();
 		if(user == null) return null;
-		if(!user.checkPassword(password, passwordEncoder)) return null;
-		return reauthenticateUser(userId);
+		if(user.getProvider() == null) {
+			if(!user.checkPassword(password, passwordEncoder)) return null;
+			return reauthenticateUser(userId);
+		}
+		
+		IAuthProvider provider = authFactory.getProvider(user.getProvider());
+		if(provider == null) {
+			return null;
+		}
+		AuthenticationObject authObj = provider.authenticate(userId, password);
+		if(!authObj.getStatus().equals("OK")) {
+			return null;
+		}
+		String token = authenticateUserWithTokenFromProvider(userId, authObj.getToken());
+		return token;
+	}
+	
+	public String authenticateUserWithTokenFromProvider(String userId, String token) {
+		if(userToAuth.containsKey(token)) return null; // duplicate token, reject
+		UserAuthentication auth = new UserAuthentication(userId, token);
+		userToAuth.put(userId, auth);
+		tokenToAuth.put(token, auth);
+		return token;
 	}
 	
 	public String generateToken() {		

@@ -1,6 +1,7 @@
 package com.tracker.apientities.user;
 
-public class APIAuthenticateRequest {
+public class APIUserRegister {
 	public String userId;
 	public String password;
+	public String provider;
 }
