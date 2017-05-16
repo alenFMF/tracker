@@ -12,17 +12,19 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.tracker.apientities.APIBaseResponse;
-import com.tracker.apientities.user.APIAuthenticateRequest;
+import com.tracker.apientities.user.APIAuthenticate;
 import com.tracker.apientities.user.APIAuthenticateResponse;
 import com.tracker.apientities.user.APIUserDetail;
 import com.tracker.apientities.user.APIUserProfile;
 import com.tracker.apientities.user.APIUserProfileResponse;
-import com.tracker.apientities.user.APIUserRegisterRequest;
+import com.tracker.apientities.user.APIUserRegister;
+import com.tracker.apientities.user.APIUserRegisterResponse;
 import com.tracker.apientities.user.APIUserResetPassword;
 import com.tracker.apientities.user.APIUserResetPasswordResponse;
 import com.tracker.apientities.user.APIUserSecret;
 import com.tracker.apientities.user.APIUserSecretResponse;
 import com.tracker.apientities.user.APIUserUpdate;
+import com.tracker.apientities.user.APIUserUpdateResponse;
 import com.tracker.apientities.user.APIUsersQuery;
 import com.tracker.apientities.user.APIUsersQueryResponse;
 import com.tracker.db.OrganizationGroup;
@@ -39,6 +41,9 @@ public class AuthenticationEngine {
 	@Autowired
 	private SessionFactory sessionFactory;
 	
+	@Autowired
+	private AuthProviderFactory authFactory;
+	
 	private TokenStorage tokens = null;
 	
 	private static final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
@@ -47,12 +52,36 @@ public class AuthenticationEngine {
 		this.tokens = new TokenStorage();
 	}
 	
-	public APIBaseResponse registerUser(APIUserRegisterRequest req) {
-		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {						
+	public APIUserRegisterResponse registerUser(APIUserRegister req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
+			if(!req.userId.contains("@")) {
+				//TODO check email validity
+				return new APIUserRegisterResponse("USERNAME_NOT_EMAIL", "");
+			}
 			TrackingUser user = (TrackingUser) sk.createCriteria(TrackingUser.class).add(Restrictions.eq("userId", req.userId)).uniqueResult();
+			AuthenticationObject authObj = null;
 			if(user == null) {
-				user = new TrackingUser(req.userId, req.password, passwordEncoder);
-
+				if(req.provider != null) {
+					IAuthProvider provider = authFactory.getProvider(req.provider);
+					if(provider == null) {
+						return new APIUserRegisterResponse("WRONG_AUTH_PROVIDER", "");
+					}
+					authObj = provider.authenticate(req.userId, req.password);
+					if(!authObj.getStatus().equals("OK")) {
+						return new APIUserRegisterResponse("PROVIDER_AUTH_ERROR", "Username or password wrong for a supplied provider.");
+					}
+					user = new TrackingUser();
+					user.setAdmin(false);
+					user.setEmail(authObj.getEmail());
+					user.setName(authObj.getName());
+					user.setPassword(null, null);  // no password
+					user.setProvider(req.provider);
+					user.setUserId(req.userId);
+				} else {
+					user = new TrackingUser(req.userId, req.password, passwordEncoder);
+				}
+				String secret = tokens.generateToken();	
+				user.setPostingSecret(secret);
 				Date now = new Date();
 				OrganizationGroup group = new OrganizationGroup();
 				group.setGroupId(req.userId);
@@ -69,9 +98,18 @@ public class AuthenticationEngine {
 				sk.save(group);
 				sk.save(asgn);
 				sk.commit();
-				return new APIBaseResponse();
+				APIUserRegisterResponse res =  new APIUserRegisterResponse();
+				if(req.provider != null) {
+					res.token = tokens.authenticate(sk, req.userId, req.password, passwordEncoder, authFactory);
+				} else {
+					res.token = tokens.authenticateUserWithTokenFromProvider(req.userId, authObj.getToken());					
+				}
+				if(res.token == null) {  // problem with token, e.g. duplicate
+					new APIUserRegisterResponse("PROVIDER_AUTH_FAILED", "Please try again.");
+				}
+				return res;
 			}
-			return new APIBaseResponse("USER_EXISTS", "");
+			return new APIUserRegisterResponse("USER_EXISTS", "");
 		}		
 	}
 	
@@ -124,12 +162,12 @@ public class AuthenticationEngine {
 	}
 
 	
-	private APIBaseResponse processPasswordChange(TrackingUser user, TrackingUser tokenUser, String oldPassword, String newPassword) {
+	private APIUserUpdateResponse processPasswordChange(TrackingUser user, TrackingUser tokenUser, String oldPassword, String newPassword) {
 		if(newPassword == null) {
 			return null;
 		}
 		if(!this.isPasswordOk(newPassword)) {
-				return new APIBaseResponse("PASSWORD_NOT_COMPLEX_ENOUGH", "");
+				return new APIUserUpdateResponse("PASSWORD_NOT_COMPLEX_ENOUGH", "");
 		}
 		
 		if(tokenUser != null && tokenUser.getAdmin() == true) {
@@ -142,13 +180,13 @@ public class AuthenticationEngine {
 				user.setPassword(newPassword, passwordEncoder);
 				return null;
 			} 
-			return new APIBaseResponse("OLD_PASSWORD_WRONG", "");			
+			return new APIUserUpdateResponse("OLD_PASSWORD_WRONG", "");			
 		} 
 		// do nothing
 		return null;
 	}
 
-	private APIBaseResponse processSecretChange(SessionKeeper sk, TrackingUser user, TrackingUser tokenUser, Boolean secretChange) {
+	private APIUserUpdateResponse processSecretChange(SessionKeeper sk, TrackingUser user, TrackingUser tokenUser, Boolean secretChange) {
 		if(secretChange == null || !secretChange) {
 			return null;
 		}
@@ -162,17 +200,17 @@ public class AuthenticationEngine {
 				user.setPostingSecret(secret);
 				return null;		
 			}
-			return new APIBaseResponse("SECRET_CHANGE_DENIED", "Token must match userId or token not of an admin.");
+			return new APIUserUpdateResponse("SECRET_CHANGE_DENIED", "Token must match userId or token not of an admin.");
 		}
 		return null;
 	}	
 	
-	private APIBaseResponse processMakeAdmin(TrackingUser user, TrackingUser tokenUser, boolean makeAdmin) {
+	private APIUserUpdateResponse processMakeAdmin(TrackingUser user, TrackingUser tokenUser, boolean makeAdmin) {
 		if(tokenUser != null && tokenUser.getAdmin()) {
 			user.setAdmin(makeAdmin);
 			return null;
 		} 	
-		return new APIBaseResponse("SET_ADMIN_DENIED", "Admin status can be changed by admin only.");		
+		return new APIUserUpdateResponse("SET_ADMIN_DENIED", "Admin status can be changed by admin only.");		
 	}
 	
 	public TrackingUser getUser(SessionKeeper sk, String userId) {
@@ -186,23 +224,41 @@ public class AuthenticationEngine {
 		return getUser(sk, tokenUserId);		
 	}
 	
-	public APIBaseResponse update(APIUserUpdate req) {
+	public APIUserUpdateResponse update(APIUserUpdate req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
 			TrackingUser user = getUser(sk, req.userId);
 			if(user == null) {		
-				return new APIBaseResponse("NO_SUCH_USER", "");
+				return new APIUserUpdateResponse("NO_SUCH_USER", "");
 			}		
+			
+			if(req.setProvider != null && req.newPassword == null) {
+				return new APIUserUpdateResponse("PROVIDER_AUTH_ERROR", "newPassword needs to be supplied to authenticate with provider.");
+			}
 
 			TrackingUser tokenUser = getTokenUser(sk, req.token);
 			
 			//password change
-			APIBaseResponse resp = processPasswordChange(user, tokenUser, req.oldPassword, req.newPassword);
+			APIUserUpdateResponse resp = processPasswordChange(user, tokenUser, req.oldPassword, req.newPassword);
 			if(resp != null) return resp;
 			
-			// secret change - TODO in future secrets should not be changable but generated due to security reasons.
-			// Attack: one user finds occupied secret and starts to post data
-			resp = processSecretChange(sk, user, tokenUser, req.resetSecret);
-			if(resp != null) return resp;
+			AuthenticationObject authObj = null;
+			if(req.setProvider != null) {
+				IAuthProvider provider = authFactory.getProvider(req.setProvider);
+				if(provider == null) {
+					return new APIUserUpdateResponse("WRONG_AUTH_PROVIDER", "");
+				}
+				authObj = provider.authenticate(req.userId, req.newPassword);
+				if(!authObj.getStatus().equals("OK")) {
+					return new APIUserUpdateResponse("PROVIDER_AUTH_ERROR", "Username or password wrong for a supplied provider.");
+				}
+				user.setPassword(null, null);  // no password
+				user.setProvider(req.setProvider);
+				
+			} else {			
+				resp = processSecretChange(sk, user, tokenUser, req.resetSecret);
+				if(resp != null) return resp;
+			}
+			
 			
 			// admin change
 			if(req.makeAdmin != null) {
@@ -210,10 +266,17 @@ public class AuthenticationEngine {
 				if(resp != null) return resp;
 			}
 			
+			APIUserUpdateResponse res = new APIUserUpdateResponse();
+			if(req.setProvider != null) {
+				res.token = tokens.authenticateUserWithTokenFromProvider(req.userId, authObj.getToken());
+				if(res.token == null) {
+					return new APIUserUpdateResponse("PROVIDER_AUTH_ERROR", "Duplicate auth token from provider. Please try again.");
+				}
+			}
 			sk.saveOrUpdate(user);	
 			sk.commit();
+			return res;
 		}		
-		return new APIBaseResponse();
 	}	
 	
 	private boolean isPasswordOk(String password) {
@@ -226,9 +289,9 @@ public class AuthenticationEngine {
 //		return n == 0;		
 //	}
 	
-	public APIAuthenticateResponse authenticate(APIAuthenticateRequest req) {
-		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {				
-			return new APIAuthenticateResponse(tokens.authenticate(sk, req.userId, req.password, passwordEncoder)); 
+	public APIAuthenticateResponse authenticate(APIAuthenticate req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
+			return new APIAuthenticateResponse(tokens.authenticate(sk, req.userId, req.password, passwordEncoder, authFactory));
 		}			
 	}
 	

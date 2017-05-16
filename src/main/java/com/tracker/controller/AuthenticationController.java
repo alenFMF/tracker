@@ -12,11 +12,11 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.apientities.APIBaseResponse;
-import com.tracker.apientities.user.APIAuthenticateRequest;
+import com.tracker.apientities.user.APIAuthenticate;
 import com.tracker.apientities.user.APIAuthenticateResponse;
 import com.tracker.apientities.user.APIUserProfile;
 import com.tracker.apientities.user.APIUserProfileResponse;
-import com.tracker.apientities.user.APIUserRegisterRequest;
+import com.tracker.apientities.user.APIUserRegister;
 import com.tracker.apientities.user.APIUserResetPassword;
 import com.tracker.apientities.user.APIUserResetPasswordResponse;
 import com.tracker.apientities.user.APIUserSecret;
@@ -41,7 +41,7 @@ public class AuthenticationController {
 			+ " and a password of sufficient complexity have to be provided. A personal user group is created together with "
 			+ "the user with the same groupId as userId. ")
 	@ResponseBody
-	public ResponseEntity<APIBaseResponse> registerUser(@RequestBody APIUserRegisterRequest req) {
+	public ResponseEntity<APIBaseResponse> registerUser(@RequestBody APIUserRegister req) {
 		inputLogger(req);
 		return new ResponseEntity<APIBaseResponse>(authEngine.registerUser(req), HttpStatus.OK);
 	}		
@@ -58,7 +58,7 @@ public class AuthenticationController {
 	}		
 
 	@RequestMapping(value = "update", method = RequestMethod.POST)
-	@ApiOperation(value = "Update a user profile.", notes = "")
+	@ApiOperation(value = "Update a user profile.", notes = "If provider is successfully changed then new authentication token is returned.")
 	@ResponseBody
 	public ResponseEntity<APIBaseResponse> update(@RequestBody APIUserUpdate req) {
 		inputLogger(req);
@@ -77,7 +77,7 @@ public class AuthenticationController {
 	@ApiOperation(value = "Authenticate user.", notes = "Provide username and password to authenticate "
 			+ "and obtain authentication token that is needed for most of other services.")
 	@ResponseBody
-	public ResponseEntity<APIAuthenticateResponse> authenticate(@RequestBody APIAuthenticateRequest req) {
+	public ResponseEntity<APIAuthenticateResponse> authenticate(@RequestBody APIAuthenticate req) {
 		inputLogger(req);
 		return new ResponseEntity<APIAuthenticateResponse>(authEngine.authenticate(req), HttpStatus.OK);
 	}		
