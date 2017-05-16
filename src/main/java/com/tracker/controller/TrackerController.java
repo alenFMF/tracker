@@ -82,13 +82,13 @@ public class TrackerController {
 	
 	@RequestMapping(value = "gpsQuery", method = RequestMethod.POST)
 	@ApiOperation(value = "Get GPS track subject to filters.", notes = "For a user with a token it lists user tracks in time between startDate "
-			+ "and endDate. A list of required userIds can be provided and requiredAccuracy in meters. If groupId	!= null then"
-			+ "token user must be admin in the group listing user tracks for that group. If the list userIds is empty and groupId == null"
+			+ "and endDate. A list of required userIds can be provided and requiredAccuracy in meters. If groupId	!= null then "
+			+ "token user must be admin in the group listing user tracks for that group. If the list userIds is empty and groupId == null "
 			+ "tracks for token user (in personal group)")
 	@ResponseBody
-	public ResponseEntity<APIBaseResponse> queryGPS(@RequestBody APITrackQuery req) {
+	public ResponseEntity<APITrackQueryResponse> queryGPS(@RequestBody APITrackQuery req) {
 		inputLogger(req);
-		return new ResponseEntity<APIBaseResponse>(testEngine.handleTrackerQuery(req), HttpStatus.OK);
+		return new ResponseEntity<APITrackQueryResponse>(testEngine.handleTrackerQuery(req), HttpStatus.OK);
 	}
 	
 //	@RequestMapping(value = "devices", method = RequestMethod.POST)

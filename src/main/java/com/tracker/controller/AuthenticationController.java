@@ -13,8 +13,12 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.user.APIAuthenticateRequest;
+import com.tracker.apientities.user.APIAuthenticateResponse;
+import com.tracker.apientities.user.APIUserProfile;
+import com.tracker.apientities.user.APIUserProfileResponse;
 import com.tracker.apientities.user.APIUserRegisterRequest;
 import com.tracker.apientities.user.APIUserResetPassword;
+import com.tracker.apientities.user.APIUserResetPasswordResponse;
 import com.tracker.apientities.user.APIUserSecret;
 import com.tracker.apientities.user.APIUserSecretResponse;
 import com.tracker.apientities.user.APIUserUpdate;
@@ -48,9 +52,9 @@ public class AuthenticationController {
 			+ "For the second request authentication token of an system admin, resetToken and a new password"
 			+ " of sufficient complexity have to be provided.")
 	@ResponseBody
-	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIUserResetPassword req) {
+	public ResponseEntity<APIUserResetPasswordResponse> resetPassword(@RequestBody APIUserResetPassword req) {
 		inputLogger(req);
-		return new ResponseEntity<APIBaseResponse>(authEngine.resetPassword(req), HttpStatus.OK);
+		return new ResponseEntity<APIUserResetPasswordResponse>(authEngine.resetPassword(req), HttpStatus.OK);
 	}		
 
 	@RequestMapping(value = "update", method = RequestMethod.POST)
@@ -61,13 +65,21 @@ public class AuthenticationController {
 		return new ResponseEntity<APIBaseResponse>(authEngine.update(req), HttpStatus.OK);
 	}	
 	
+	@RequestMapping(value = "profile", method = RequestMethod.POST)
+	@ApiOperation(value = "Show user profile data.", notes = "Listing user or admin groups is not yet supported.")
+	@ResponseBody
+	public ResponseEntity<APIUserProfileResponse> profile(@RequestBody APIUserProfile req) {
+		inputLogger(req);
+		return new ResponseEntity<APIUserProfileResponse>(authEngine.userProfile(req), HttpStatus.OK);
+	}	
+	
 	@RequestMapping(value = "authenticate", method = RequestMethod.POST)
 	@ApiOperation(value = "Authenticate user.", notes = "Provide username and password to authenticate "
 			+ "and obtain authentication token that is needed for most of other services.")
 	@ResponseBody
-	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIAuthenticateRequest req) {
+	public ResponseEntity<APIAuthenticateResponse> authenticate(@RequestBody APIAuthenticateRequest req) {
 		inputLogger(req);
-		return new ResponseEntity<APIBaseResponse>(authEngine.authenticate(req), HttpStatus.OK);
+		return new ResponseEntity<APIAuthenticateResponse>(authEngine.authenticate(req), HttpStatus.OK);
 	}		
 	
 	@RequestMapping(value = "list", method = RequestMethod.POST)
@@ -78,13 +90,13 @@ public class AuthenticationController {
 		return new ResponseEntity<APIUsersQueryResponse>(authEngine.listUsers(req), HttpStatus.OK);
 	}	
 
-	@RequestMapping(value = "secret", method = RequestMethod.POST)
-	@ApiOperation(value = "Returns user secret for posting tracks.", notes = "")
-	@ResponseBody
-	public ResponseEntity<APIUserSecretResponse> getPostingSecret(@RequestBody APIUserSecret req) {
-		inputLogger(req);
-		return new ResponseEntity<APIUserSecretResponse>(authEngine.getPostingSecret(req), HttpStatus.OK);
-	}	
+//	@RequestMapping(value = "secret", method = RequestMethod.POST)
+//	@ApiOperation(value = "Returns user secret for posting tracks.", notes = "")
+//	@ResponseBody
+//	public ResponseEntity<APIUserSecretResponse> getPostingSecret(@RequestBody APIUserSecret req) {
+//		inputLogger(req);
+//		return new ResponseEntity<APIUserSecretResponse>(authEngine.getPostingSecret(req), HttpStatus.OK);
+//	}	
 	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {

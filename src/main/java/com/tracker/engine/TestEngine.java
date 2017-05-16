@@ -126,14 +126,14 @@ public class TestEngine {
 	}
 
 	@SuppressWarnings("unchecked")
-	public APIBaseResponse handleTrackerQuery(APITrackQuery req) {
+	public APITrackQueryResponse handleTrackerQuery(APITrackQuery req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
 			if(req.token == null) {
-				return new APIBaseResponse("AUTH_TOKEN_MISSING", "");
+				return new APITrackQueryResponse("AUTH_TOKEN_MISSING", "");
 			}			
 			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
 			if(tokenUser == null) {
-				return new APIBaseResponse("AUTH_ERROR", "");
+				return new APITrackQueryResponse("AUTH_ERROR", "");
 			}
 			Criteria c = sk.createCriteria(GPSRecord.class);
 			c.createAlias("device", "Device");

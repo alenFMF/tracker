@@ -233,24 +233,32 @@ public class AuthenticationEngine {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public APIBaseResponse userProfile(APIUserProfile req) {
+	public APIUserProfileResponse userProfile(APIUserProfile req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
-			TrackingUser user = getUser(sk, req.userId);
-			if(user == null) return new APIBaseResponse("WRONG_USERID", ""); 
-			
 			TrackingUser tokenUser = getTokenUser(sk, req.token);
-			if(tokenUser == null) return new APIBaseResponse("INVALID_AUTH_TOKEN", "");
+			if(tokenUser == null) return new APIUserProfileResponse("AUTH_ERROR", "");
+
+			TrackingUser user = null;
+			if(req.userId != null) {
+				user = getUser(sk, req.userId);
+			} else {
+				user = tokenUser;
+			}
+			if(user == null) return new APIUserProfileResponse("WRONG_USERID", ""); 
+			
+			
 			
 			APIUserProfileResponse resp = new APIUserProfileResponse();
 			resp.userId = user.getUserId();
 			resp.isAdmin = user.getAdmin();
-			resp.postingSecret = user.getPostingSecret();
-			resp.adminGroups = null;
-			resp.userGroups = null;
-			resp.personalGroup = null;
+			resp.postingSecret = tokenUser.getUserId().equals(user.getUserId()) ? user.getPostingSecret() : null;
+//			resp.adminGroups = null;
+//			resp.userGroups = null;
+			resp.personalGroup = tokenUser.getPersonalGroup().getGroupId();
 			return resp;
 		}
 	}	
+	
 	@SuppressWarnings("unchecked")
 	public APIUsersQueryResponse listUsers(APIUsersQuery req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	

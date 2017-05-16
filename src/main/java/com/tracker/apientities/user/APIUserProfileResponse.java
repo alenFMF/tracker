@@ -11,4 +11,9 @@ public class APIUserProfileResponse extends APIBaseResponse {
 	public String personalGroup;
 	public List<String> adminGroups;
 	public List<String> userGroups;
+	
+	public APIUserProfileResponse() {}
+	public APIUserProfileResponse(String status, String errorMessage) {
+		super(status, errorMessage);
+	}
 }
