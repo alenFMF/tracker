@@ -30,6 +30,8 @@ import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentResponse;
 import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentUpdate;
 import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentUpdateResponse;
 import com.tracker.apientities.organizationgroup.APIUserGroupRolesDetail;
+import com.tracker.apientities.organizationgroup.APIUserGroupTimeInterval;
+import com.tracker.apientities.organizationgroup.APIUserGroupTimeIntervalResponse;
 import com.tracker.db.OrganizationGroup;
 import com.tracker.db.TrackingUser;
 import com.tracker.db.UserGroupAssignment;
@@ -599,5 +601,57 @@ public class GroupEngine {
 		}
 	}
 	
+	public  APIUserGroupTimeIntervalResponse checkTimeInterval(APIUserGroupTimeInterval req){
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
+			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
+			if(tokenUser == null) {
+				return new APIUserGroupTimeIntervalResponse("AUTH_ERROR", "");
+			}	
+			TrackingUser user = tokenUser;
+			if(req.forUserId != null && tokenUser.getUserId() != req.forUserId) {
+				if(tokenUser.getAdmin()) {
+					TrackingUser tmpUser = authEngine.getUser(sk, req.forUserId);
+					if(tmpUser == null) {
+						return new APIUserGroupTimeIntervalResponse("NO_SUCH_USER", "");
+					}
+					user = tmpUser;
+				} else {
+					return new APIUserGroupTimeIntervalResponse("AUTH_ERROR", "Only system admin can list assignments for other users.");
+				}
+			} 
+			if(req.forGroupId != null) {
+				List<UserGroupAssignment> roleAsg = usersGroupAssignments(sk, user.getUserId(), req.forGroupId, new Date(), false, true);
+				if(roleAsg == null || roleAsg.isEmpty()) {
+					return new APIUserGroupTimeIntervalResponse("NO_SUCH_GROUP", "");
+				}
+				List<GroupRoles> rolesUser = userRolesInGroupsAtTime(roleAsg, user, req.forGroupId);
+				if(!(rolesUser.get(0).isAdminRole() || (req.forUserId == null && tokenUser.getAdmin()))) {
+					return new APIUserGroupTimeIntervalResponse("USER_NOT_GROUP_ADMIN", "");					
+				}
+			}
+			List<UserGroupAssignment> assignments = null;
+			if(req.forGroupId == null) {
+				assignments = usersGroupAssignments(sk, user.getUserId(), null, new Date(), true, true);
+			} else {
+				assignments = usersGroupAssignments(sk, null, req.forGroupId, new Date(), true, true);
+			}		
+			 /*new APIUserGroupAssignmentResponse(assignments.stream()
+								.map(x -> new APIUserGroupAssignmentDetail(x))
+								.collect(Collectors.toList())						
+					);*/
+			 List<APIUserGroupAssignmentDetail> seznam = assignments.stream()
+						.map(x -> new APIUserGroupAssignmentDetail(x))
+						.collect(Collectors.toList());
+			 System.out.println(seznam);
+		}
+		
+		
+		Date date = new Date();
+		Date date2 = new Date();
+		date.setTime(1194942307);
+		Date[][] a = {{date, date2},{date,date}};
+		return new APIUserGroupTimeIntervalResponse(a);		
+		
+	}
 	
 }
