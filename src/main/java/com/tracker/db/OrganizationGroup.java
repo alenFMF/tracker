@@ -24,6 +24,9 @@ public class OrganizationGroup extends BaseEntity  {
 	@OneToOne
 	public TrackingUser personalGroupUser;
 	
+	public String authenticationProvider; 
+	public String providerParentGroupId;
+	
 	public Date timestamp; // time of creation;
 
 	@OneToMany(mappedBy = "group")
@@ -96,6 +99,22 @@ public class OrganizationGroup extends BaseEntity  {
 		this.personalGroupUser = personalGroupUser;
 	}
 	
+	public String getAuthenticationProvider() {
+		return authenticationProvider;
+	}
+
+	public void setAuthenticationProvider(String authenticationProvider) {
+		this.authenticationProvider = authenticationProvider;
+	}
+
+	public String getProviderParentGroupId() {
+		return providerParentGroupId;
+	}
+
+	public void setProviderParentGroupId(String providerParentGroupId) {
+		this.providerParentGroupId = providerParentGroupId;
+	}
+
 	public OrganizationGroup() {
 		super();
 		this.privateGroup = false;

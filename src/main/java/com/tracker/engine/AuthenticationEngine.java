@@ -27,6 +27,7 @@ import com.tracker.apientities.user.APIUserUpdate;
 import com.tracker.apientities.user.APIUserUpdateResponse;
 import com.tracker.apientities.user.APIUsersQuery;
 import com.tracker.apientities.user.APIUsersQueryResponse;
+import com.tracker.db.AppConfiguration;
 import com.tracker.db.OrganizationGroup;
 import com.tracker.db.TrackingUser;
 import com.tracker.db.UserGroupAssignment;
@@ -50,6 +51,10 @@ public class AuthenticationEngine {
 	
 	public AuthenticationEngine() throws NoSuchAlgorithmException  {
 		this.tokens = new TokenStorage();
+	}
+	
+	public List<GroupRoles> processProviderAuthentication(SessionKeeper sk, AuthenticationObject authObj) {
+		return null;
 	}
 	
 	public APIUserRegisterResponse registerUser(APIUserRegister req) {
@@ -113,10 +118,19 @@ public class AuthenticationEngine {
 		}		
 	}
 	
+	private AppConfiguration getAppConfiguration(SessionKeeper sk) {
+		return (AppConfiguration)sk.createCriteria(AppConfiguration.class).add(Restrictions.eq("identifier", 1)).uniqueResult();
+	}
+	
 	public APIUserResetPasswordResponse resetPassword(APIUserResetPassword req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
 			TrackingUser user = null;
+
 			
+			AppConfiguration appConf = this.getAppConfiguration(sk);
+			if(req.secret == null || appConf == null || appConf.getResetPasswordSecret() == null || !req.secret.equals(appConf.getResetPasswordSecret())) {
+				return new APIUserResetPasswordResponse("WRONG_SECRET", "Configure and provide correct password reset secret.");
+			}
 			if(req.resetToken == null) {
 				user = getUser(sk, req.userId);
 				if(user == null) {		
@@ -131,16 +145,6 @@ public class AuthenticationEngine {
 			
 			if(req.resetToken != null) {
 				String userId = tokens.userIdForResetToken(req.resetToken);
-				if(req.token == null) {
-					return new APIUserResetPasswordResponse("AUTH_TOKEN_MISSING", "");					
-				}
-				TrackingUser tokenUser = getTokenUser(sk, req.token);
-				if(tokenUser == null) {
-					return new APIUserResetPasswordResponse("WRONG_TOKEN", "");										
-				}
-				if(!tokenUser.getAdmin()) {
-					return new APIUserResetPasswordResponse("TOKEN_NOT_OF_ADMIN", "");
-				}
 				if(userId == null) {
 					return new APIUserResetPasswordResponse("INVALID_OR_EXPIRED_RESET_TOKEN", "");
 				}

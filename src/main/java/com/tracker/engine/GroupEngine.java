@@ -30,6 +30,7 @@ import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentResponse;
 import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentUpdate;
 import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentUpdateResponse;
 import com.tracker.apientities.organizationgroup.APIUserGroupRolesDetail;
+import com.tracker.db.AppConfiguration;
 import com.tracker.db.OrganizationGroup;
 import com.tracker.db.TrackingUser;
 import com.tracker.db.UserGroupAssignment;
@@ -342,6 +343,10 @@ public class GroupEngine {
 					statuses.add("NO_GROUP");
 					continue;
 				}
+				if(group.getAuthenticationProvider() != null) {
+					statuses.add("PROVIDER_GROUP_LINK_DENIED");
+					continue;
+				}
 				if(!(asgn.inviteType.equals("USER") || asgn.inviteType.equals("GROUP"))) {
 					statuses.add("WRONG_INVITETYPE");  // if user invite, then userId must match tokenUser
 					continue;										
@@ -572,32 +577,55 @@ public class GroupEngine {
 				return new APIBaseResponse("AUTH_ERROR", "Only system admin can make migration updates.");
 			}
 			
-			Criteria c = sk.createCriteria(TrackingUser.class)
-					.add(Restrictions.isNull("personalGroup"));
-			@SuppressWarnings("unchecked")
-			List<TrackingUser> userWithoutPersonalGroups = c.list();
-			for(TrackingUser user: userWithoutPersonalGroups) {				
-				Date now = new Date();
-				OrganizationGroup group = new OrganizationGroup();
-				group.setGroupId(user.getUserId());
-				group.setDescription(user.getUserId());
-				group.setCreator(user); 
-				group.setPersonalGroupUser(user);
-				user.setPersonalGroup(group);
-				group.setTimestamp(now);
-				
-				UserGroupAssignment asgn = new UserGroupAssignment();
-				asgn.setAsPersonalGroup(user, group, now);
-				
-				sk.saveOrUpdate(user);
-				sk.save(group);
-				sk.save(asgn);
-								
+//			boolean status = migration1(sk);
+			boolean status = migration2(sk);
+			if(status) {
+				return new APIBaseResponse();
+			} else {
+				return new APIBaseResponse("ERROR", "Migration failed. Check errors.");
 			}
-			sk.commit();
-			return new APIBaseResponse();
 		}
 	}
 	
+	public boolean migration2(SessionKeeper sk) {
+		// create initial configuration
+		Criteria c = sk.createCriteria(AppConfiguration.class);
+		@SuppressWarnings("unchecked")
+		List<AppConfiguration> lst = c.list();
+		if(lst.size() > 0) return true;
+		AppConfiguration conf = new AppConfiguration();
+		conf.setIdentifier(1);
+		conf.setResetPasswordSecret("veRy.Big>SeCrET");
+		sk.save(conf);
+		sk.commit();
+		return true;
+	}
 	
+	public boolean migration1(SessionKeeper sk) {
+		// create missing personal groups
+		Criteria c = sk.createCriteria(TrackingUser.class)
+				.add(Restrictions.isNull("personalGroup"));
+		@SuppressWarnings("unchecked")
+		List<TrackingUser> userWithoutPersonalGroups = c.list();
+		for(TrackingUser user: userWithoutPersonalGroups) {				
+			Date now = new Date();
+			OrganizationGroup group = new OrganizationGroup();
+			group.setGroupId(user.getUserId());
+			group.setDescription(user.getUserId());
+			group.setCreator(user); 
+			group.setPersonalGroupUser(user);
+			user.setPersonalGroup(group);
+			group.setTimestamp(now);
+			
+			UserGroupAssignment asgn = new UserGroupAssignment();
+			asgn.setAsPersonalGroup(user, group, now);
+			
+			sk.saveOrUpdate(user);
+			sk.save(group);
+			sk.save(asgn);
+							
+		}
+		sk.commit();
+		return true;
+	}
 }
