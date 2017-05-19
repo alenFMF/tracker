@@ -1,5 +1,7 @@
 package com.tracker.engine;
 
+import java.util.List;
+
 public class AuthenticationObject {
 	private String status;
 	private String errorMessage;
@@ -7,6 +9,7 @@ public class AuthenticationObject {
 	private String name;
 	private String username;
 	private String email;
+	private List<ProviderGroupRoles> groupRoles;
 	
 	public String getStatus() {
 		return status;
@@ -43,5 +46,11 @@ public class AuthenticationObject {
 	}
 	public void setEmail(String email) {
 		this.email = email;
+	}
+	public List<ProviderGroupRoles> getGroupRoles() {
+		return groupRoles;
+	}
+	public void setGroupRoles(List<ProviderGroupRoles> groupRoles) {
+		this.groupRoles = groupRoles;
 	}
 }

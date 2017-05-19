@@ -6,7 +6,7 @@ public class APIUserResetPassword {
 	public String userId;
 	public String resetToken;
 	public String newPassword;
-	public String token;
+	public String secret;
 	
 	@ApiModelProperty(value = "User ID must be provided to trigger reset password generation.")	
 	public String getUserId() {
@@ -29,15 +29,10 @@ public class APIUserResetPassword {
 	public void setNewPassword(String newPassword) {
 		this.newPassword = newPassword;
 	}
-	
-	@ApiModelProperty(value = "Authentication token. Must belong to a user with administrator privileges.")	
-	public String getToken() {
-		return token;
+	public String getSecret() {
+		return secret;
 	}
-	public void setToken(String token) {
-		this.token = token;
-	}
-	
-	
-	
+	public void setSecret(String secret) {
+		this.secret = secret;
+	}	
 }

@@ -10,6 +10,7 @@ import org.springframework.orm.hibernate4.LocalSessionFactoryBean;
 
 import com.tracker.db.ActivityRecord;
 import com.tracker.db.AltitudeRecord;
+import com.tracker.db.AppConfiguration;
 import com.tracker.db.BatteryRecord;
 import com.tracker.db.DeviceRecord;
 import com.tracker.db.GPSRecord;
@@ -41,7 +42,8 @@ public class HibernateConfiguration {
 			Vehicle.class,
 			OrganizationGroup.class,
 			UserGroupAssignment.class,
-			VehicleGroupAssignment.class
+			VehicleGroupAssignment.class,
+			AppConfiguration.class
 			});
 		bean.setHibernateProperties(hibernateProperties);
 		//bean.setEntityInterceptor(new AuditInterceptor());
