@@ -15,4 +15,7 @@ public class VehicleGroupAssignment extends BaseEntity {
 	
 	public Date fromDate;
 	public Date untilDate;  // if null and from < now assignment still valid
+	public Object getVehicle() {
+		return this.vehicle;
+	}
 }

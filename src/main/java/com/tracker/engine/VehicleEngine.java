@@ -1,5 +1,6 @@
 package com.tracker.engine;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -11,11 +12,14 @@ import org.springframework.stereotype.Component;
 
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.vehicle.APIVehicleListEntry;
+import com.tracker.apientities.vehicle.APIVehicleProfile;
+import com.tracker.apientities.vehicle.APIVehicleProfileResponse;
 import com.tracker.apientities.vehicle.APIVehicleQuery;
 import com.tracker.apientities.vehicle.APIVehicleQueryResponse;
 import com.tracker.apientities.vehicle.APIVehicleRegister;
 import com.tracker.apientities.vehicle.APIVehicleUpdate;
 import com.tracker.db.Vehicle;
+import com.tracker.db.VehicleGroupAssignment;
 import com.tracker.utils.SessionKeeper;
 
 @Component
@@ -47,6 +51,26 @@ public class VehicleEngine {
 			sk.commit();
 		}				
 		return new APIBaseResponse();
+	}
+	public APIVehicleProfileResponse vehicleProfile(APIVehicleProfile req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {						
+			Vehicle vehicle = (Vehicle)sk.createCriteria(Vehicle.class).add(Restrictions.eq("vehicleId", req.vehicleId)).uniqueResult();
+			if(vehicle == null) {		
+				return new APIVehicleProfileResponse("NO_SUCH_VEHICLE", "");
+			}
+			Criteria c = sk.createCriteria(VehicleGroupAssignment.class);		
+			List<VehicleGroupAssignment> recs = c.list();	
+			
+			//Trenutno ne dela pravilno
+			List<String> groups = new ArrayList<String>();
+			for (VehicleGroupAssignment g : recs){
+				if (g.vehicle == vehicle){
+					groups.add(g.group.getGroupId());
+				}
+			}
+			APIVehicleProfileResponse profile = new APIVehicleProfileResponse(vehicle.description,vehicle.getGroupId().groupId, groups);
+			return profile;
+		}				
 	}
 	
 	@SuppressWarnings("unchecked")
