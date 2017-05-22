@@ -1,12 +1,22 @@
 package com.tracker.db;
 
+
 import javax.persistence.Entity;
+
+import javax.persistence.ManyToOne;
 
 @Entity
 public class Vehicle extends BaseEntity {
 
 	public String vehicleId;
 	public String description;
+	
+	@ManyToOne
+	public OrganizationGroup groupId;
+	
+	public Vehicle(){
+		super();
+	}
 	
 	public String getVehicleId() {
 		return vehicleId;
@@ -23,8 +33,14 @@ public class Vehicle extends BaseEntity {
 	public void setDescription(String description) {
 		this.description = description;
 	}
+	public OrganizationGroup getGroupId() {
+		return groupId;
+	}
 
-	public Vehicle() {}
+	public void setGroupId(OrganizationGroup groupId) {
+		this.groupId = groupId;
+	}
+
 	
 	public Vehicle(String vehicleId, String description) {
 		this.vehicleId = vehicleId;

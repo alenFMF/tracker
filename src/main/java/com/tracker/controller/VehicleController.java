@@ -13,6 +13,8 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.user.APIUserRegister;
+import com.tracker.apientities.vehicle.APIVehicleProfile;
+import com.tracker.apientities.vehicle.APIVehicleProfileResponse;
 import com.tracker.apientities.vehicle.APIVehicleQuery;
 import com.tracker.apientities.vehicle.APIVehicleQueryResponse;
 import com.tracker.apientities.vehicle.APIVehicleRegister;
@@ -51,7 +53,12 @@ public class VehicleController {
 		inputLogger(req);
 		return new ResponseEntity<APIVehicleQueryResponse>(vehicleEngine.listVehicles(req), HttpStatus.OK);
 	}		
-	
+	@RequestMapping(value = "profile", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIVehicleProfileResponse> vehicleProfile(@RequestBody APIVehicleProfile req) {
+		inputLogger(req);
+		return new ResponseEntity<APIVehicleProfileResponse>(vehicleEngine.vehicleProfile(req), HttpStatus.OK);
+	}	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {
         APIBaseResponse.logError(exc);
