@@ -18,6 +18,7 @@ import com.tracker.apientities.vehicle.APIVehicleQuery;
 import com.tracker.apientities.vehicle.APIVehicleQueryResponse;
 import com.tracker.apientities.vehicle.APIVehicleRegister;
 import com.tracker.apientities.vehicle.APIVehicleUpdate;
+import com.tracker.db.OrganizationGroup;
 import com.tracker.db.Vehicle;
 import com.tracker.db.VehicleGroupAssignment;
 import com.tracker.utils.SessionKeeper;
@@ -28,16 +29,24 @@ public class VehicleEngine {
 	private SessionFactory sessionFactory;
 	
 	public APIBaseResponse register(APIVehicleRegister req) {
-		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {		
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
 			Vehicle vehicle = (Vehicle)sk.createCriteria(Vehicle.class).add(Restrictions.eq("vehicleId", req.vehicleId)).uniqueResult();
 			if(vehicle == null) {
-				vehicle = new Vehicle(req.vehicleId, req.description);
+				if (req.groupId == null) {
+					return new APIBaseResponse("GROUP_IS_NULL", "");
+				}
+				OrganizationGroup group = (OrganizationGroup)sk.createCriteria(OrganizationGroup.class).add(Restrictions.eq("groupId", req.groupId)).uniqueResult();
+				if(group == null){
+					return new APIBaseResponse("NO_SUCH_GROUP","");
+				}
+				else{vehicle = new Vehicle(req.vehicleId, req.description);
+				vehicle.setGroupId(group);
 				sk.save(vehicle);
 				sk.commit();
-				return new APIBaseResponse();
+				return new APIBaseResponse();}
 			}
 			return new APIBaseResponse("VEHICLE_EXISTS", "");
-		}		
+		}	
 	}	
 	
 	public APIBaseResponse update(APIVehicleUpdate req) {
