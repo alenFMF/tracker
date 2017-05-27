@@ -150,7 +150,7 @@ public class UserGroupAssignment extends BaseEntity {
 				this.periodic = null;
 				this.repeatTimes = null;
 	}
-
+	
 }
 
 //ADMIN - can manage group, can watch tracks of others, does not share his own track.
