@@ -114,14 +114,14 @@ public class UserGroupAssignment extends BaseEntity {
 		this.groupAction = groupAction;
 	}
 
-	public void setAsPersonalGroup(TrackingUser user, OrganizationGroup group, Date now) {
+	public void setAsPersonalGroup(TrackingUser user, OrganizationGroup group, Date now, String role) {
 		this.group = group;
 		this.user = user;
 		this.groupUser = user;
 		this.accepted = true;
 		this.fromDate = now;
 		this.untilDate = null;
-		this.groupRole = "ADMIN";
+		this.groupRole = role;
 		this.inviteType = "USER";
 		this.grantPermission = "ALLOW";
 		this.timestamp = now;
@@ -130,6 +130,27 @@ public class UserGroupAssignment extends BaseEntity {
 		this.periodic = null;
 		this.repeatTimes = null;
 	}
+	
+	public UserGroupAssignment() {
+		super();
+	}
+	
+	public UserGroupAssignment(TrackingUser user, OrganizationGroup group, Date time, String role, String grant) {
+				this.group = group;
+				this.user = user;
+				this.accepted = true;
+				this.userAction = time;
+				this.groupAction = time;
+				this.fromDate = time;
+				this.untilDate = null;
+				this.groupRole = role;
+				this.inviteType = "USER";
+				this.grantPermission = grant;
+				this.timestamp = time;
+				this.periodic = null;
+				this.repeatTimes = null;
+	}
+
 }
 
 //ADMIN - can manage group, can watch tracks of others, does not share his own track.

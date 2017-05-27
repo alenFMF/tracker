@@ -33,37 +33,14 @@ public class TrackerController {
 	
 	@Autowired 
 	AuthenticationEngine authEngine;
+
+	@RequestMapping(value = "print", method = RequestMethod.POST)
+	@ResponseBody
+	public String testService2(@RequestBody String req) {
+		System.out.println(req);
+		return req;
+	}	
 	
-//	@RequestMapping(value = "test_service_1", method = RequestMethod.GET)
-//	@ResponseBody
-//	public String testService1() {
-//		return "Hello world!";
-//	}
-	
-//	@RequestMapping(value = "test_service_2", method = RequestMethod.POST)
-//	@ResponseBody
-//	public APITest2 testService2(@RequestBody APITest1 req) {
-//		return testEngine.handleService2(req);
-//	}
-
-//	@RequestMapping(value = "print", method = RequestMethod.POST)
-//	@ResponseBody
-//	public String testService2(@RequestBody String req) {
-//		System.out.println(req);
-//		return req;
-//	}
-
-//	@RequestMapping(value = "gpsPost", method = RequestMethod.POST)
-//	@ResponseBody
-//	public ResponseEntity<APIBaseResponse> testService2(@RequestBody APITrackerPost req) {
-//		inputLogger(req);
-//		try {
-//			return new ResponseEntity<APIBaseResponse>(testEngine.handleTrackerPost(req), HttpStatus.OK);
-//		} catch (Exception e) {
-//			return new ResponseEntity<APIBaseResponse>(HttpStatus.BAD_REQUEST);
-//		}
-//	}
-
 	@RequestMapping(value = "trackPost/{userSecret:.+}", method = RequestMethod.POST)
 	@ApiOperation(value = "Post sample(s).", notes = "Route for posting GPS samples compatible with react-native-background-geolocation.")
 	@ResponseBody
@@ -90,41 +67,6 @@ public class TrackerController {
 		inputLogger(req);
 		return new ResponseEntity<APITrackQueryResponse>(testEngine.handleTrackerQuery(req), HttpStatus.OK);
 	}
-	
-//	@RequestMapping(value = "devices", method = RequestMethod.POST)
-//	@ResponseBody
-//	public ResponseEntity<APIDevicesResponse> devicesQuery(@RequestBody APIDevicesQuery req) {
-//		inputLogger(req);
-//		return new ResponseEntity<APIDevicesResponse>(testEngine.handleDevicesQuery(req), HttpStatus.OK);
-//	}	
-
-//	@RequestMapping(value = "registerUser", method = RequestMethod.POST)
-//	@ResponseBody
-//	public ResponseEntity<APIBaseResponse> registerUser(@RequestBody APIUserRegisterRequest req) {
-//		inputLogger(req);
-//		return new ResponseEntity<APIBaseResponse>(authEngine.registerUser(req), HttpStatus.OK);
-//	}		
-//	
-//	@RequestMapping(value = "resetPassword", method = RequestMethod.POST)
-//	@ResponseBody
-//	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIUserResetPasswordRequest req) {
-//		inputLogger(req);
-//		return new ResponseEntity<APIBaseResponse>(authEngine.resetPassword(req), HttpStatus.OK);
-//	}		
-//
-//	@RequestMapping(value = "authenticate", method = RequestMethod.POST)
-//	@ResponseBody
-//	public ResponseEntity<APIBaseResponse> resetPassword(@RequestBody APIAuthenticateRequest req) {
-//		inputLogger(req);
-//		return new ResponseEntity<APIBaseResponse>(authEngine.authenticate(req), HttpStatus.OK);
-//	}		
-//	
-//	@RequestMapping(value = "users", method = RequestMethod.POST)
-//	@ResponseBody
-//	public ResponseEntity<APIUsersQueryResponse> listUsers(@RequestBody APIUsersQuery req) {
-//		inputLogger(req);
-//		return new ResponseEntity<APIUsersQueryResponse>(authEngine.listUsers(req), HttpStatus.OK);
-//	}	
 	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {

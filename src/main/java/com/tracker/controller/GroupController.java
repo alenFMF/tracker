@@ -23,8 +23,6 @@ import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentQuery;
 import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentResponse;
 import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentUpdate;
 import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentUpdateResponse;
-import com.tracker.apientities.organizationgroup.APIUserGroupTimeInterval;
-import com.tracker.apientities.organizationgroup.APIUserGroupTimeIntervalResponse;
 import com.tracker.engine.AuthenticationEngine;
 import com.tracker.engine.GroupEngine;
 
@@ -109,14 +107,6 @@ public class GroupController {
 		return new ResponseEntity<APIBaseResponse>(groupEngine.migrationUpdate(req), HttpStatus.OK);
 	}
 
-
-	@RequestMapping(value = "link/timeInterval", method = RequestMethod.POST)
-	@ResponseBody
-	public ResponseEntity<APIUserGroupTimeIntervalResponse> updateGroup(@RequestBody APIUserGroupTimeInterval req) {
-		System.out.println(req);
-		return new ResponseEntity<APIUserGroupTimeIntervalResponse>(groupEngine.checkTimeInterval(req), HttpStatus.OK);
-	}
-	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {
         APIBaseResponse.logError(exc);

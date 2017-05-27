@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.apientities.APIBaseResponse;
+import com.tracker.apientities.user.APIAuthProvidersResponse;
 import com.tracker.apientities.user.APIAuthenticate;
 import com.tracker.apientities.user.APIAuthenticateResponse;
 import com.tracker.apientities.user.APIUserProfile;
@@ -19,8 +20,6 @@ import com.tracker.apientities.user.APIUserProfileResponse;
 import com.tracker.apientities.user.APIUserRegister;
 import com.tracker.apientities.user.APIUserResetPassword;
 import com.tracker.apientities.user.APIUserResetPasswordResponse;
-import com.tracker.apientities.user.APIUserSecret;
-import com.tracker.apientities.user.APIUserSecretResponse;
 import com.tracker.apientities.user.APIUserUpdate;
 import com.tracker.apientities.user.APIUsersQuery;
 import com.tracker.apientities.user.APIUsersQueryResponse;
@@ -90,13 +89,12 @@ public class AuthenticationController {
 		return new ResponseEntity<APIUsersQueryResponse>(authEngine.listUsers(req), HttpStatus.OK);
 	}	
 
-//	@RequestMapping(value = "secret", method = RequestMethod.POST)
-//	@ApiOperation(value = "Returns user secret for posting tracks.", notes = "")
-//	@ResponseBody
-//	public ResponseEntity<APIUserSecretResponse> getPostingSecret(@RequestBody APIUserSecret req) {
-//		inputLogger(req);
-//		return new ResponseEntity<APIUserSecretResponse>(authEngine.getPostingSecret(req), HttpStatus.OK);
-//	}	
+	@RequestMapping(value = "providers/list", method = RequestMethod.GET)
+	@ApiOperation(value = "List authentication providers.", notes = "")
+	@ResponseBody
+	public ResponseEntity<APIAuthProvidersResponse> listAuthProviders() {
+		return new ResponseEntity<APIAuthProvidersResponse>(authEngine.listAuthProviders(), HttpStatus.OK);
+	}	
 	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {

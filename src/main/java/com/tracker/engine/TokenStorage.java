@@ -2,10 +2,8 @@ package com.tracker.engine;
 
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import org.hibernate.criterion.Restrictions;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import com.tracker.apientities.user.APIUserRegisterResponse;
 import com.tracker.db.TrackingUser;
 import com.tracker.utils.SessionKeeper;
 
@@ -42,7 +40,7 @@ public class TokenStorage {
 	}
 	
 	
-	public String authenticatedUserForToken(String token) {
+	public UserAuthentication authenticatedUserForToken(String token) {
 		if(!tokenToAuth.containsKey(token)) {
 			return null;
 		}
@@ -50,7 +48,7 @@ public class TokenStorage {
 		if(!checkOrInvalidate(auth)) {
 			return null;
 		}
-		return auth.getUserId();
+		return auth;
 	}
 	
 	public boolean isAuthenticated(String userId) {
@@ -58,42 +56,43 @@ public class TokenStorage {
 					&& checkOrInvalidate(userToAuth.get(userId));
 	}
 	
-	private String reauthenticateUser(String userId) {	
+	private String reauthenticateUser(String userId, String provider) {	
 		String token = null;
 		while(true) {   // ensure unique token
 			token = generateToken();
 			if(!userToAuth.containsKey(token)) break;
 		}
 		
-		UserAuthentication auth = new UserAuthentication(userId, token);
+		UserAuthentication auth = new UserAuthentication(userId, token, provider);
 		userToAuth.put(userId, auth);
 		tokenToAuth.put(token, auth);
 		return token;
 	}
 	
-	public String authenticate(SessionKeeper sk, String userId, String password, PasswordEncoder passwordEncoder, AuthProviderFactory authFactory) {
-		TrackingUser user = (TrackingUser)sk.createCriteria(TrackingUser.class).add(Restrictions.eq("userId", userId)).uniqueResult();
-		if(user == null) return null;
-		if(user.getProvider() == null) {
+	public String authenticate(SessionKeeper sk, TrackingUser user, String password, PasswordEncoder passwordEncoder, AuthProviderFactory authFactory, String providerId) {
+//		TrackingUser user = (TrackingUser)sk.createCriteria(TrackingUser.class).add(Restrictions.eq("userId", userId)).uniqueResult();
+//		if(user == null) return null;
+		if(providerId == null) {
 			if(!user.checkPassword(password, passwordEncoder)) return null;
-			return reauthenticateUser(userId);
+			return reauthenticateUser(user.getUserId(), null);
 		}
 		
-		IAuthProvider provider = authFactory.getProvider(user.getProvider());
+		IAuthProvider provider = authFactory.getProvider(providerId);
 		if(provider == null) {
 			return null;
 		}
-		AuthenticationObject authObj = provider.authenticate(userId, password);
+		AuthenticationObject authObj = provider.authenticate(user.getUserId(), password);
 		if(!authObj.getStatus().equals("OK")) {
 			return null;
 		}
-		String token = authenticateUserWithTokenFromProvider(userId, authObj.getToken());
+		String token = authenticateUserWithTokenFromProvider(user.getUserId(), authObj.getToken(), provider.getKey());
+		provider.updateRoles(sk, user, authObj);
 		return token;
 	}
 	
-	public String authenticateUserWithTokenFromProvider(String userId, String token) {
+	public String authenticateUserWithTokenFromProvider(String userId, String token, String provider) {
 		if(userToAuth.containsKey(token)) return null; // duplicate token, reject
-		UserAuthentication auth = new UserAuthentication(userId, token);
+		UserAuthentication auth = new UserAuthentication(userId, token, provider);
 		userToAuth.put(userId, auth);
 		tokenToAuth.put(token, auth);
 		return token;

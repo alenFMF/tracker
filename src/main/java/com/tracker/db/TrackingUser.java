@@ -1,5 +1,6 @@
 package com.tracker.db;
 
+import java.util.Date;
 import java.util.List;
 
 import javax.persistence.Column;
@@ -16,7 +17,8 @@ public class TrackingUser extends BaseEntity {
 	public String passwordHash; 
 	public String name;
 	public String email;
-	
+	public Date timestamp; 
+
 	@Column(unique = true) 
 	public String postingSecret;
 
@@ -77,6 +79,7 @@ public class TrackingUser extends BaseEntity {
 		this.userId = userId;
 		this.passwordHash = hashPassword(password, passwordEncoder);
 		this.email = userId;
+		this.timestamp = new Date();
 	}
 	
 	public static String hashPassword(String password, PasswordEncoder passwordEncoder) {
@@ -117,6 +120,14 @@ public class TrackingUser extends BaseEntity {
 
 	public void setEmail(String email) {
 		this.email = email;
+	}
+
+	public Date getTimestamp() {
+		return timestamp;
+	}
+
+	public void setTimestamp(Date timestamp) {
+		this.timestamp = timestamp;
 	} 
 	
 }

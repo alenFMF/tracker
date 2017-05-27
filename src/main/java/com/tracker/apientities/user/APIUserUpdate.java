@@ -10,5 +10,4 @@ public class APIUserUpdate {
 	public String newPassword;
 	public Boolean resetSecret;
 	public Boolean makeAdmin;
-	public String setProvider;  // if not null, new password should be password for provider.
 }

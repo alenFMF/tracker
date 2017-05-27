@@ -8,6 +8,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class APIUserGroupAssignmentUpdate {
 	public String token;
 	public String forUserId;
+	public String forUserIdProvider;
 	public List<Integer> confirmLinks;
 	public List<Integer> rejectLinks;
 }

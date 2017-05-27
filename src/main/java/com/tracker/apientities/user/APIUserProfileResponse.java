@@ -9,6 +9,7 @@ public class APIUserProfileResponse extends APIBaseResponse {
 	public String postingSecret;
 	public Boolean isAdmin;
 	public String personalGroup;
+	public String provider;
 	public List<String> adminGroups;
 	public List<String> userGroups;
 	
