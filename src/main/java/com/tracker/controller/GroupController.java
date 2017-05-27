@@ -107,8 +107,6 @@ public class GroupController {
 		return new ResponseEntity<APIBaseResponse>(groupEngine.migrationUpdate(req), HttpStatus.OK);
 	}
 
-
-	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {
         APIBaseResponse.logError(exc);

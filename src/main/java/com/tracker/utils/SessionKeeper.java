@@ -140,6 +140,10 @@ public class SessionKeeper implements AutoCloseable
     public void update(Object object) {
         session.update(object);
     }
+
+    public void delete(Object object) {
+        session.delete(object);
+    }
     
     public void setFlushMode(FlushMode mode) {
         session.setFlushMode(mode);

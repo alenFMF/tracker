@@ -5,6 +5,7 @@ import java.util.List;
 
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
@@ -24,8 +25,14 @@ public class OrganizationGroup extends BaseEntity  {
 	@OneToOne
 	public TrackingUser personalGroupUser;
 	
-	public String authenticationProvider; 
+	public String provider; 
 	public String providerParentGroupId;
+	
+	@ManyToOne(fetch = FetchType.LAZY)
+	public OrganizationGroup parentProviderGroup;
+	
+	@OneToMany(mappedBy = "parentProviderGroup")
+	public List<OrganizationGroup> childProviderGroups;
 	
 	public Date timestamp; // time of creation;
 
@@ -99,12 +106,12 @@ public class OrganizationGroup extends BaseEntity  {
 		this.personalGroupUser = personalGroupUser;
 	}
 	
-	public String getAuthenticationProvider() {
-		return authenticationProvider;
+	public String getProvider() {
+		return provider;
 	}
 
-	public void setAuthenticationProvider(String authenticationProvider) {
-		this.authenticationProvider = authenticationProvider;
+	public void setProvider(String authenticationProvider) {
+		this.provider = authenticationProvider;
 	}
 
 	public String getProviderParentGroupId() {
@@ -115,8 +122,25 @@ public class OrganizationGroup extends BaseEntity  {
 		this.providerParentGroupId = providerParentGroupId;
 	}
 
+	public OrganizationGroup getParentProviderGroup() {
+		return parentProviderGroup;
+	}
+
+	public void setParentProviderGroup(OrganizationGroup parentProviderGroup) {
+		this.parentProviderGroup = parentProviderGroup;
+	}
+
+	public List<OrganizationGroup> getChildProviderGroups() {
+		return childProviderGroups;
+	}
+
+	public void setChildProviderGroups(List<OrganizationGroup> childProviderGroups) {
+		this.childProviderGroups = childProviderGroups;
+	}
+
 	public OrganizationGroup() {
 		super();
 		this.privateGroup = false;
 	}
+	
 }

@@ -11,7 +11,7 @@ import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.tracker.apientities.APIBaseResponse;
+import com.tracker.apientities.user.APIAuthProvidersResponse;
 import com.tracker.apientities.user.APIAuthenticate;
 import com.tracker.apientities.user.APIAuthenticateResponse;
 import com.tracker.apientities.user.APIUserDetail;
@@ -57,62 +57,93 @@ public class AuthenticationEngine {
 		return null;
 	}
 	
+	
+	private UserGeneration generateUser(SessionKeeper sk, String userId, String password, String providerId) {
+		// user must not exist!
+		TrackingUser user = null;
+		UserGeneration ugen = new UserGeneration();
+		AuthenticationObject authObj = null;
+		IAuthProvider provider = null;
+		if(providerId == null) {
+			user = new TrackingUser(userId, password, passwordEncoder);
+		} else {
+			provider = authFactory.getProvider(providerId);
+			if(provider == null) {
+				ugen.status = "WRONG_PROVIDER";
+				return ugen;
+			}
+			authObj = provider.authenticate(userId, password);
+			if(!authObj.getStatus().equals("OK")) {
+				ugen.status = "PROVIDER_AUTH_ERROR";
+				return ugen;
+			}
+			ugen.provider = providerId;
+			ugen.auth = authObj;
+			user = new TrackingUser();
+			user.setAdmin(false);
+			user.setEmail(authObj.getEmail());
+			user.setName(authObj.getName());
+			user.setPassword(null, null);  // no password
+			user.setProvider(providerId);
+			user.setUserId(userId);					
+		}
+		
+		ugen.user = user;
+		String secret = tokens.generateToken();	
+		user.setPostingSecret(secret);
+
+		Date now = new Date();
+		user.setTimestamp(now);
+		OrganizationGroup group = generatePersonalGroup(user, providerId, now);
+		ugen.personalGroup = group;
+		UserGroupAssignment asgn1 = new UserGroupAssignment();
+		asgn1.setAsPersonalGroup(user, group, now, "ADMIN");
+		UserGroupAssignment asgn2 = new UserGroupAssignment();
+		asgn2.setAsPersonalGroup(user, group, now, "USER");		
+		ugen.status = "OK";
+		sk.save(ugen.user);
+		sk.save(ugen.personalGroup);
+		sk.save(asgn1);
+		sk.save(asgn2);
+		sk.commit();	
+		if(provider != null) {
+			provider.updateRoles(sk, user, authObj);
+		}
+		return ugen;
+	}
+	
+	private String personalGroupName(String userId, String provider) {
+		return provider + "#" + userId;
+	}
+	
+	public OrganizationGroup generatePersonalGroup(TrackingUser user, String provider, Date now) {		
+		OrganizationGroup group = new OrganizationGroup();
+		String groupId = personalGroupName(user.getUserId(), provider);
+		group.setGroupId(groupId);
+		group.setDescription(groupId);
+		group.setCreator(user); 
+		group.setPersonalGroupUser(user);
+		group.setProvider(provider);
+		user.setPersonalGroup(group);		
+		group.setTimestamp(now);
+		return group;
+	}
+	
 	public APIUserRegisterResponse registerUser(APIUserRegister req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
 			if(!req.userId.contains("@")) {
 				//TODO check email validity
 				return new APIUserRegisterResponse("USERNAME_NOT_EMAIL", "");
 			}
-			TrackingUser user = (TrackingUser) sk.createCriteria(TrackingUser.class).add(Restrictions.eq("userId", req.userId)).uniqueResult();
-			AuthenticationObject authObj = null;
+			TrackingUser user = getUser(sk, req.userId, null); 
 			if(user == null) {
-				if(req.provider != null) {
-					IAuthProvider provider = authFactory.getProvider(req.provider);
-					if(provider == null) {
-						return new APIUserRegisterResponse("WRONG_AUTH_PROVIDER", "");
-					}
-					authObj = provider.authenticate(req.userId, req.password);
-					if(!authObj.getStatus().equals("OK")) {
-						return new APIUserRegisterResponse("PROVIDER_AUTH_ERROR", "Username or password wrong for a supplied provider.");
-					}
-					user = new TrackingUser();
-					user.setAdmin(false);
-					user.setEmail(authObj.getEmail());
-					user.setName(authObj.getName());
-					user.setPassword(null, null);  // no password
-					user.setProvider(req.provider);
-					user.setUserId(req.userId);
-				} else {
-					user = new TrackingUser(req.userId, req.password, passwordEncoder);
+				UserGeneration ugen = generateUser(sk, req.userId, req.password, null);
+				if(ugen.status == "OK") {					
+					APIUserRegisterResponse res =  new APIUserRegisterResponse();
+					res.token = tokens.authenticate(sk, user, req.password, passwordEncoder, null, null);
+					return res;
 				}
-				String secret = tokens.generateToken();	
-				user.setPostingSecret(secret);
-				Date now = new Date();
-				OrganizationGroup group = new OrganizationGroup();
-				group.setGroupId(req.userId);
-				group.setDescription(req.userId);
-				group.setCreator(user); 
-				group.setPersonalGroupUser(user);
-				user.setPersonalGroup(group);
-				group.setTimestamp(now);
-				
-				UserGroupAssignment asgn = new UserGroupAssignment();
-				asgn.setAsPersonalGroup(user, group, now);
-				
-				sk.save(user);
-				sk.save(group);
-				sk.save(asgn);
-				sk.commit();
-				APIUserRegisterResponse res =  new APIUserRegisterResponse();
-				if(req.provider != null) {
-					res.token = tokens.authenticate(sk, req.userId, req.password, passwordEncoder, authFactory);
-				} else {
-					res.token = tokens.authenticateUserWithTokenFromProvider(req.userId, authObj.getToken());					
-				}
-				if(res.token == null) {  // problem with token, e.g. duplicate
-					new APIUserRegisterResponse("PROVIDER_AUTH_FAILED", "Please try again.");
-				}
-				return res;
+				return new APIUserRegisterResponse("ERROR", "");
 			}
 			return new APIUserRegisterResponse("USER_EXISTS", "");
 		}		
@@ -132,7 +163,7 @@ public class AuthenticationEngine {
 				return new APIUserResetPasswordResponse("WRONG_SECRET", "Configure and provide correct password reset secret.");
 			}
 			if(req.resetToken == null) {
-				user = getUser(sk, req.userId);
+				user = getUser(sk, req.userId, null);  // cannot reset password for provider's user
 				if(user == null) {		
 					return new APIUserResetPasswordResponse("NO_SUCH_USER", "");
 				}				
@@ -151,7 +182,7 @@ public class AuthenticationEngine {
 				if(!this.isPasswordOk(req.newPassword)) {
 					return new APIUserResetPasswordResponse("PASSWORD_NOT_COMPLEX_ENOUGH", "");
 				}
-				user = getUser(sk, userId);
+				user = getUser(sk, userId, null);
 				user.setPassword(req.newPassword, passwordEncoder);
 				tokens.clearPasswordResetToken(req.resetToken);				
 				sk.saveOrUpdate(user);	
@@ -217,51 +248,38 @@ public class AuthenticationEngine {
 		return new APIUserUpdateResponse("SET_ADMIN_DENIED", "Admin status can be changed by admin only.");		
 	}
 	
-	public TrackingUser getUser(SessionKeeper sk, String userId) {
+	public TrackingUser getUser(SessionKeeper sk, String userId, String provider) {
 		if(userId == null) return null;
-		return (TrackingUser) sk.createCriteria(TrackingUser.class).add(Restrictions.eq("userId", userId)).uniqueResult();
+		Criteria c = sk.createCriteria(TrackingUser.class).add(Restrictions.eq("userId", userId));
+		if(provider == null) {
+			c.add(Restrictions.isNull("provider"));
+		} else {
+			c.add(Restrictions.eq("provider", provider));
+		}
+		return (TrackingUser) c.uniqueResult();
 	}
 	
 	public TrackingUser getTokenUser(SessionKeeper sk, String token) {
 		if(token == null) return null;
-		String tokenUserId = this.tokens.authenticatedUserForToken(token);
-		return getUser(sk, tokenUserId);		
+		UserAuthentication auth = this.tokens.authenticatedUserForToken(token);
+		return getUser(sk, auth.getUserId(), auth.getProvider());		
 	}
 	
 	public APIUserUpdateResponse update(APIUserUpdate req) {
-		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
-			TrackingUser user = getUser(sk, req.userId);
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
+			TrackingUser user = getUser(sk, req.userId, null); // not possible update for a provider
 			if(user == null) {		
 				return new APIUserUpdateResponse("NO_SUCH_USER", "");
 			}		
 			
-			if(req.setProvider != null && req.newPassword == null) {
-				return new APIUserUpdateResponse("PROVIDER_AUTH_ERROR", "newPassword needs to be supplied to authenticate with provider.");
-			}
-
 			TrackingUser tokenUser = getTokenUser(sk, req.token);
 			
 			//password change
 			APIUserUpdateResponse resp = processPasswordChange(user, tokenUser, req.oldPassword, req.newPassword);
 			if(resp != null) return resp;
 			
-			AuthenticationObject authObj = null;
-			if(req.setProvider != null) {
-				IAuthProvider provider = authFactory.getProvider(req.setProvider);
-				if(provider == null) {
-					return new APIUserUpdateResponse("WRONG_AUTH_PROVIDER", "");
-				}
-				authObj = provider.authenticate(req.userId, req.newPassword);
-				if(!authObj.getStatus().equals("OK")) {
-					return new APIUserUpdateResponse("PROVIDER_AUTH_ERROR", "Username or password wrong for a supplied provider.");
-				}
-				user.setPassword(null, null);  // no password
-				user.setProvider(req.setProvider);
-				
-			} else {			
-				resp = processSecretChange(sk, user, tokenUser, req.resetSecret);
-				if(resp != null) return resp;
-			}
+			resp = processSecretChange(sk, user, tokenUser, req.resetSecret);
+			if(resp != null) return resp;
 			
 			
 			// admin change
@@ -271,12 +289,12 @@ public class AuthenticationEngine {
 			}
 			
 			APIUserUpdateResponse res = new APIUserUpdateResponse();
-			if(req.setProvider != null) {
-				res.token = tokens.authenticateUserWithTokenFromProvider(req.userId, authObj.getToken());
-				if(res.token == null) {
-					return new APIUserUpdateResponse("PROVIDER_AUTH_ERROR", "Duplicate auth token from provider. Please try again.");
-				}
-			}
+//			if(req.setProvider != null) {
+//				res.token = tokens.authenticateUserWithTokenFromProvider(req.userId, authObj.getToken(), req.setProvider);
+//				if(res.token == null) {
+//					return new APIUserUpdateResponse("PROVIDER_AUTH_ERROR", "Duplicate auth token from provider. Please try again.");
+//				}
+//			}
 			sk.saveOrUpdate(user);	
 			sk.commit();
 			return res;
@@ -294,8 +312,26 @@ public class AuthenticationEngine {
 //	}
 	
 	public APIAuthenticateResponse authenticate(APIAuthenticate req) {
-		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
-			return new APIAuthenticateResponse(tokens.authenticate(sk, req.userId, req.password, passwordEncoder, authFactory));
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
+			TrackingUser user = getUser(sk, req.userId, req.provider);
+			if(user != null) {
+				return new APIAuthenticateResponse(tokens.authenticate(sk, user, req.password, passwordEncoder, authFactory, req.provider));
+			}
+			// user is null
+			if(req.provider == null) {
+				return new APIAuthenticateResponse(null);
+			}
+			// user is null and provider != null
+			if(authFactory.getProvider(req.provider) == null) {
+				return new APIAuthenticateResponse("WRONG_PROVIDER", "");
+			}
+			// generate new provider user
+			UserGeneration ugen = generateUser(sk, req.userId, req.password, req.provider);
+			if(ugen.status == "OK") { 
+				return new APIAuthenticateResponse(tokens.authenticateUserWithTokenFromProvider(ugen.user.getUserId(), ugen.auth.getToken(), req.provider));
+			} else {
+				return new APIAuthenticateResponse(ugen.status, "");
+			}			
 		}			
 	}
 	
@@ -307,7 +343,7 @@ public class AuthenticationEngine {
 
 			TrackingUser user = null;
 			if(req.userId != null) {
-				user = getUser(sk, req.userId);
+				user = getUser(sk, req.userId, req.provider);
 			} else {
 				user = tokenUser;
 			}
@@ -319,9 +355,10 @@ public class AuthenticationEngine {
 			resp.userId = user.getUserId();
 			resp.isAdmin = user.getAdmin();
 			resp.postingSecret = tokenUser.getUserId().equals(user.getUserId()) ? user.getPostingSecret() : null;
+			resp.provider = user.getProvider();
 //			resp.adminGroups = null;
 //			resp.userGroups = null;
-			resp.personalGroup = tokenUser.getPersonalGroup().getGroupId();
+			resp.personalGroup = user.getPersonalGroup().getGroupId();
 			return resp;
 		}
 	}	
@@ -339,7 +376,7 @@ public class AuthenticationEngine {
 			Criteria c = sk.createCriteria(TrackingUser.class);						
 			List<TrackingUser> recs = c.list();	
 			List<APIUserDetail> users = recs.stream()
-				.map(x -> new APIUserDetail(x.getUserId(), x.getAdmin()))
+				.map(x -> new APIUserDetail(x.getUserId(), x.getAdmin(), x.getProvider()))
 				.collect(Collectors.toList());
 			APIUsersQueryResponse res = new APIUsersQueryResponse(users);
 			return res;
@@ -359,5 +396,9 @@ public class AuthenticationEngine {
 			}
 			return new APIUserSecretResponse(tokenUser.getPostingSecret());
 		}		
+	}
+
+	public APIAuthProvidersResponse listAuthProviders() {
+		return new APIAuthProvidersResponse(authFactory.listProviders());
 	}
 }

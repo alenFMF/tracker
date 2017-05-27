@@ -3,6 +3,7 @@ package com.tracker.apientities.organizationgroup;
 public class APIUserGroupAssignmentQuery {
 	public String token;
 	public String forUserId;  
+	public String forUserIdProvider;
 	public String forGroupId;  
 	public Boolean pendingOnly;
 	public Boolean accept; // if null, accepted and rejected assignments are returned. If true, accepted only, and if false rejected only.

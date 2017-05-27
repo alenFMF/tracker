@@ -67,11 +67,14 @@ public class GroupEngine {
 				group.setCreator(tokenUser); 
 				group.setTimestamp(now);
 				
-				UserGroupAssignment asgn = new UserGroupAssignment();
-				asgn.setAsPersonalGroup(tokenUser, group, now);		
+				UserGroupAssignment asgn1 = new UserGroupAssignment();
+				asgn1.setAsPersonalGroup(tokenUser, group, now, "ADMIN");		
+				UserGroupAssignment asgn2 = new UserGroupAssignment();
+				asgn2.setAsPersonalGroup(tokenUser, group, now, "USER");		
+
 				sk.saveOrUpdate(tokenUser);
 				sk.save(group);
-				sk.save(asgn);				
+				sk.save(asgn1);				
 				sk.commit();
 				return new APIBaseResponse();
 			}
@@ -79,7 +82,7 @@ public class GroupEngine {
 		}		
 	}	
 	
-	private void addIntervalValidityRestrictions(Criteria c, String fromDateName, String untilDateName, Date nowTime) {
+	private static void addIntervalValidityRestrictions(Criteria c, String fromDateName, String untilDateName, Date nowTime) {
 
 //		(fromDate == null && (untilDate == null || untilDate >= nowTime)) ||
 //	    fromDate != null && (fromDate <= nowTime && (untilDate == null || untilDate >= nowTime)
@@ -123,7 +126,7 @@ public class GroupEngine {
 //	}
 
 	@SuppressWarnings("unchecked")
-	public List<UserGroupAssignment> usersGroupAssignments(SessionKeeper sk, String userId, String groupId, Date time, Boolean pendingOnly, Boolean accept) {
+	public static List<UserGroupAssignment> usersGroupAssignments(SessionKeeper sk, String userId, String groupId, Date time, Boolean pendingOnly, Boolean accept, String provider) {
 		// if now = true only assignments that are valid at the moment are listed
 		if(userId == null && groupId == null) return null;  
 		Criteria c = sk.createCriteria(UserGroupAssignment.class);
@@ -137,6 +140,10 @@ public class GroupEngine {
 		}	
 		if(time != null) {
 			addIntervalValidityRestrictions(c, "fromDate", "untilDate", time);
+		}
+		if(provider != null) {
+			c.add(Restrictions.eq("User.provider", provider));
+			c.add(Restrictions.eq("Group.provider", provider));
 		}
 		if(pendingOnly) {
 			c.add(Restrictions.isNull("accepted"));
@@ -152,17 +159,29 @@ public class GroupEngine {
 		return c.list();
 	}
 	
+	private static boolean assignmentRelevantForTime(UserGroupAssignment asgn, Date time) {  
+	    return (asgn.getFromDate() == null && (asgn.getUntilDate() == null || asgn.getUntilDate().compareTo(time) >= 0)) ||
+	    	   (asgn.getFromDate() != null && (asgn.getFromDate().compareTo(time) <= 0 && 
+	    	   									(asgn.getUntilDate() == null || asgn.getUntilDate().compareTo(time) >= 0)));
+	}
+	
 	// returns effective role for combination of user and group based on assignments.
 	// group may not be present, meaning that a list of roles is given for all groups based on assignments.
 	// all assignments not related to user are ignored.
-	private List<GroupRoles> userRolesInGroupsAtTime(List<UserGroupAssignment> assignments, TrackingUser user, String groupId) {
+	// if time != null, additional filtering of assignments is done so that they are relevant for time.
+	public static List<GroupRoles> userRolesInGroupsAtTime(List<UserGroupAssignment> assignments, TrackingUser user, String groupId, Date time) {
 //		if(user == null || group == null) return null;
 //		List<UserGroupAssignment> assignments = usersRolesInGroups(sk, user, group, time, false);
 		
 		// filter by groupId
 		List<UserGroupAssignment> assgn2 = assignments;
-		if(groupId != null) {
-			assgn2 = assignments.stream()
+		if(time != null) {  // filter by time
+			assgn2 = assgn2.stream()
+							.filter(x -> GroupEngine.assignmentRelevantForTime(x, time))
+							.collect(Collectors.toList());
+		}
+		if(groupId != null) { // filter by group
+			assgn2 = assgn2.stream()
 							.filter(x -> x.getGroup().getGroupId().equals(groupId))
 							.collect(Collectors.toList());
 		}
@@ -200,15 +219,15 @@ public class GroupEngine {
 				}
 			}
 			
-			String personalGroupOnwer = group.getPersonalGroupUser().getUserId();
-			if( personalGroupOnwer != null && user.getUserId().equals(group.getPersonalGroupUser().getUserId()) ) {
+			String personalGroupOwner = group.getPersonalGroupUser() != null ? group.getPersonalGroupUser().getUserId() : null;
+			if( personalGroupOwner != null && user.getUserId().equals(group.getPersonalGroupUser().getUserId()) ) {
 				adminCnt = true;
 			}
 			if(user.getAdmin()) { // system admin
 				adminCnt = true;
 			}
 			GroupRoles grol = new GroupRoles(user, group, adminCnt, userCnt);
-			if(group.getPersonalGroupUser().getUserId().equals(user.getUserId())) {
+			if(personalGroupOwner != null && personalGroupOwner.equals(user.getUserId())) {
 				primaryGroup = grol;
 			} else {
 				outRoles.add(grol);
@@ -234,7 +253,7 @@ public class GroupEngine {
 			List<UserGroupAssignment> asgnList = e.getValue().stream()
 							.sorted(Comparator.comparing(x -> x.getTimestamp()))
 							.collect(Collectors.toList());
-			List<GroupRoles> roles = userRolesInGroupsAtTime(asgnList, user, groupId);
+			List<GroupRoles> roles = GroupEngine.userRolesInGroupsAtTime(asgnList, user, groupId, null);
 			if(roles.size() == 1) {
 				result.add(roles.get(0));
 			}
@@ -249,8 +268,8 @@ public class GroupEngine {
 				return new APIBaseResponse("AUTH_ERROR", "");
 			}
 
-			List<UserGroupAssignment> assignments = usersGroupAssignments(sk, tokenUser.getUserId(), req.groupId, new Date(), false, true);
-			List<GroupRoles> roles = userRolesInGroupsAtTime(assignments, tokenUser, req.groupId);
+			List<UserGroupAssignment> assignments = GroupEngine.usersGroupAssignments(sk, tokenUser.getUserId(), req.groupId, new Date(), false, true, tokenUser.getProvider());
+			List<GroupRoles> roles = GroupEngine.userRolesInGroupsAtTime(assignments, tokenUser, req.groupId, null);
 			if(roles == null || roles.size() == 0) {
 				return new APIBaseResponse("NO_SUCH_GROUP", "");
 			}
@@ -278,7 +297,7 @@ public class GroupEngine {
 			TrackingUser user = tokenUser;
 			if(req.forUser != null && tokenUser.getUserId() != req.forUser) {
 				if(tokenUser.getAdmin()) {
-					TrackingUser tmpUser = authEngine.getUser(sk, req.forUser);
+					TrackingUser tmpUser = authEngine.getUser(sk, req.forUser, req.forUserProvider);
 					if(tmpUser == null) {
 						return new APIGroupQueryResponse("NO_SUCH_USER", "");
 					}
@@ -287,8 +306,8 @@ public class GroupEngine {
 					return new APIGroupQueryResponse("AUTH_ERROR", "Only admin can list groups for other users.");
 				}
 			} 
-			List<UserGroupAssignment> assignments = usersGroupAssignments(sk, user.getUserId(), null, new Date(), false, true);
-			List<GroupRoles> roles = userRolesInGroupsAtTime(assignments, user, null);
+			List<UserGroupAssignment> assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), null, new Date(), false, true, user.getProvider());
+			List<GroupRoles> roles = GroupEngine.userRolesInGroupsAtTime(assignments, user, null, null);
 						
 			List<APIGroupDetail> groups = new LinkedList<APIGroupDetail>();
 			for (GroupRoles role : roles) {
@@ -299,16 +318,17 @@ public class GroupEngine {
 			    det.privateGroup = group.getPrivateGroup();
 				
 				List<GroupRoles> rolesToList = new LinkedList<GroupRoles>();
-			    if(role.isAdminRole() || user.getUserId().equals(group.getPersonalGroupUser().getUserId())) {
+			    if(role.isAdminRole() || (group.getPersonalGroupUser() != null && user.getUserId().equals(group.getPersonalGroupUser().getUserId()))) {
 				    det.creatorId = group.getCreator().getUserId();			    	
-				    det.personalGroupUserId = group.getPersonalGroupUser().getUserId();
+				    det.personalGroupUserId = group.getPersonalGroupUser() != null ? group.getPersonalGroupUser().getUserId() : null;
 				    det.timestamp = group.getTimestamp();
 				    String userId = user.getUserId();
-					rolesToList = userRolesInGroup(assignments, group.getGroupId()).stream()
-							.filter(x -> x.getUser().getUserId() != userId)
+				    List<UserGroupAssignment> asgnmts2 = GroupEngine.usersGroupAssignments(sk, null, group.getGroupId(), new Date(), false, true, user.getProvider());
+					rolesToList = userRolesInGroup(asgnmts2, group.getGroupId()).stream()
+//							.filter(x -> x.getUser().getUserId() != userId)
 							.sorted(Comparator.comparing(x -> x.getUser().getUserId()))
 							.collect(Collectors.toList());				    
-			    } else {
+			    } else {			    	
 			    	rolesToList.add(role);
 			    }
 			    det.setUsers(rolesToList.stream()
@@ -321,7 +341,7 @@ public class GroupEngine {
 			return res;
 		}
 	}	
-	
+		
 	public APIShareOrInviteResponse registerLinks(APIShareOrInvite req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
 			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
@@ -333,7 +353,7 @@ public class GroupEngine {
 			}
 			List<String> statuses = new LinkedList<String>();
 			for(APIUserGroupAssignment asgn : req.requests) {
-				TrackingUser user = authEngine.getUser(sk, asgn.userId);
+				TrackingUser user = authEngine.getUser(sk, asgn.userId, null); // share/invite possible only for users not authenticated through a provider.
 				if(user == null) {
 					statuses.add("NO_USER");
 					continue;
@@ -343,7 +363,7 @@ public class GroupEngine {
 					statuses.add("NO_GROUP");
 					continue;
 				}
-				if(group.getAuthenticationProvider() != null) {
+				if(group.getProvider() != null) {
 					statuses.add("PROVIDER_GROUP_LINK_DENIED");
 					continue;
 				}
@@ -364,8 +384,8 @@ public class GroupEngine {
 					continue;					
 				}
 				if(asgn.inviteType.equals("GROUP")) {
-					List<UserGroupAssignment> assignments = usersGroupAssignments(sk, tokenUser.getUserId(), asgn.groupId, new Date(), false, true);
-					List<GroupRoles> roles = userRolesInGroupsAtTime(assignments, tokenUser, asgn.groupId);
+					List<UserGroupAssignment> assignments = GroupEngine.usersGroupAssignments(sk, tokenUser.getUserId(), asgn.groupId, new Date(), false, true, tokenUser.getProvider());
+					List<GroupRoles> roles = GroupEngine.userRolesInGroupsAtTime(assignments, tokenUser, asgn.groupId, null);
 					if(roles == null || roles.isEmpty()) {
 						statuses.add("TOKENUSER_NOT_GROUP_ADMIN");
 						continue;
@@ -424,7 +444,7 @@ public class GroupEngine {
 			TrackingUser user = tokenUser;
 			if(req.forUserId != null && tokenUser.getUserId() != req.forUserId) {
 				if(tokenUser.getAdmin()) {
-					TrackingUser tmpUser = authEngine.getUser(sk, req.forUserId);
+					TrackingUser tmpUser = authEngine.getUser(sk, req.forUserId, req.forUserIdProvider);
 					if(tmpUser == null) {
 						return new APIUserGroupAssignmentUpdateResponse("NO_SUCH_USER", "");
 					}
@@ -461,8 +481,8 @@ public class GroupEngine {
 						}
 					} else { // invite type eq "USER"
 						OrganizationGroup group = uga.getGroup();
-						List<UserGroupAssignment> assignments = usersGroupAssignments(sk, user.getUserId(), group.getGroupId(), new Date(), false, true);
-						List<GroupRoles> roles = userRolesInGroupsAtTime(assignments, user, group.getGroupId());
+						List<UserGroupAssignment> assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), group.getGroupId(), new Date(), false, true, user.getProvider());
+						List<GroupRoles> roles = GroupEngine.userRolesInGroupsAtTime(assignments, user, group.getGroupId(), null);
 						if(roles == null || roles.isEmpty() || !roles.get(0).isAdminRole()) {
 							confirmStatuses.add("USER_NOT_GROUP_ADMIN");
 							continue;
@@ -505,8 +525,8 @@ public class GroupEngine {
 						}
 					} else { // invite type eq "USER"
 						OrganizationGroup group = uga.getGroup();
-						List<UserGroupAssignment> assignments = usersGroupAssignments(sk, user.getUserId(), group.getGroupId(), new Date(), false, true);
-						List<GroupRoles> roles = userRolesInGroupsAtTime(assignments, user, group.getGroupId());
+						List<UserGroupAssignment> assignments = usersGroupAssignments(sk, user.getUserId(), group.getGroupId(), new Date(), false, true, null);
+						List<GroupRoles> roles = userRolesInGroupsAtTime(assignments, user, group.getGroupId(), null);
 						if(roles == null || roles.isEmpty() || !roles.get(0).isAdminRole()) {
 							rejectStatuses.add("USER_NOT_GROUP_ADMIN");
 							continue;
@@ -538,7 +558,7 @@ public class GroupEngine {
 			TrackingUser user = tokenUser;
 			if(req.forUserId != null && tokenUser.getUserId() != req.forUserId) {
 				if(tokenUser.getAdmin()) {
-					TrackingUser tmpUser = authEngine.getUser(sk, req.forUserId);
+					TrackingUser tmpUser = authEngine.getUser(sk, req.forUserId, req.forUserIdProvider);
 					if(tmpUser == null) {
 						return new APIUserGroupAssignmentResponse("NO_SUCH_USER", "");
 					}
@@ -548,20 +568,20 @@ public class GroupEngine {
 				}
 			} 
 			if(req.forGroupId != null) {
-				List<UserGroupAssignment> roleAsg = usersGroupAssignments(sk, user.getUserId(), req.forGroupId, new Date(), false, true);
+				List<UserGroupAssignment> roleAsg = GroupEngine.usersGroupAssignments(sk, user.getUserId(), req.forGroupId, new Date(), false, true, user.getProvider());
 				if(roleAsg == null || roleAsg.isEmpty()) {
 					return new APIUserGroupAssignmentResponse("NO_SUCH_GROUP", "");
 				}
-				List<GroupRoles> rolesUser = userRolesInGroupsAtTime(roleAsg, user, req.forGroupId);
+				List<GroupRoles> rolesUser = GroupEngine.userRolesInGroupsAtTime(roleAsg, user, req.forGroupId, null);
 				if(!(rolesUser.get(0).isAdminRole() || (req.forUserId == null && tokenUser.getAdmin()))) {
 					return new APIUserGroupAssignmentResponse("USER_NOT_GROUP_ADMIN", "");					
 				}
 			}
 			List<UserGroupAssignment> assignments = null;
 			if(req.forGroupId == null) {
-				assignments = usersGroupAssignments(sk, user.getUserId(), null, new Date(), req.pendingOnly != null && req.pendingOnly, req.accept);
+				assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), null, new Date(), req.pendingOnly != null && req.pendingOnly, req.accept, null);
 			} else {
-				assignments = usersGroupAssignments(sk, null, req.forGroupId, new Date(), req.pendingOnly != null && req.pendingOnly, req.accept);
+				assignments = GroupEngine.usersGroupAssignments(sk, null, req.forGroupId, new Date(), req.pendingOnly != null && req.pendingOnly, req.accept, null);
 			}		
 			return new APIUserGroupAssignmentResponse(assignments.stream()
 								.map(x -> new APIUserGroupAssignmentDetail(x))
@@ -577,14 +597,59 @@ public class GroupEngine {
 				return new APIBaseResponse("AUTH_ERROR", "Only system admin can make migration updates.");
 			}
 			
-//			boolean status = migration1(sk);
-			boolean status = migration2(sk);
+			boolean status = migration1(sk);
+			status = migration2(sk);
+			status = migration3(sk);
 			if(status) {
 				return new APIBaseResponse();
 			} else {
 				return new APIBaseResponse("ERROR", "Migration failed. Check errors.");
 			}
 		}
+	}
+
+	public boolean providerGroupCleanup(SessionKeeper sk) {
+		// delete assignments from provider users to non-provider groups and vice versa
+		@SuppressWarnings("unchecked")
+		List<UserGroupAssignment> toDelete = sk.createCriteria(UserGroupAssignment.class)
+			.createAlias("group", "Group")
+			.add(Restrictions.isNotNull("Group.provider"))
+			.list();
+		
+		sk.beginTransaction();
+		for(UserGroupAssignment uga: toDelete) {
+			sk.delete(uga.getGroup());
+//			sk.delete(uga);
+		}
+		sk.endTransaction();
+		sk.commit();
+		return true;
+	}
+	
+	
+	public boolean migration3(SessionKeeper sk) {
+		// delete assignments from provider users to non-provider groups and vice versa
+		@SuppressWarnings("unchecked")
+		List<UserGroupAssignment> wrongOnes = sk.createCriteria(UserGroupAssignment.class)
+			.createAlias("user", "User")
+			.createAlias("group", "Group")
+			.add(Restrictions.disjunction()
+					.add(Restrictions.conjunction()
+							.add(Restrictions.isNotNull("User.provider"))
+							.add(Restrictions.isNull("Group.provider"))
+						)
+					.add(Restrictions.conjunction()
+							.add(Restrictions.isNull("User.provider"))
+							.add(Restrictions.isNotNull("Group.provider"))							
+						)
+				).list();
+		sk.beginTransaction();
+		for(UserGroupAssignment uga: wrongOnes) {
+			sk.delete(uga);
+		}
+		sk.endTransaction();
+		sk.commit();
+		return true;
 	}
 	
 	public boolean migration2(SessionKeeper sk) {
@@ -605,10 +670,10 @@ public class GroupEngine {
 		// create missing personal groups
 		Criteria c = sk.createCriteria(TrackingUser.class)
 				.add(Restrictions.isNull("personalGroup"));
+		Date now = new Date();
 		@SuppressWarnings("unchecked")
 		List<TrackingUser> userWithoutPersonalGroups = c.list();
 		for(TrackingUser user: userWithoutPersonalGroups) {				
-			Date now = new Date();
 			OrganizationGroup group = new OrganizationGroup();
 			group.setGroupId(user.getUserId());
 			group.setDescription(user.getUserId());
@@ -617,13 +682,43 @@ public class GroupEngine {
 			user.setPersonalGroup(group);
 			group.setTimestamp(now);
 			
-			UserGroupAssignment asgn = new UserGroupAssignment();
-			asgn.setAsPersonalGroup(user, group, now);
+			UserGroupAssignment asgn1 = new UserGroupAssignment();
+			asgn1.setAsPersonalGroup(user, group, now, "ADMIN");
+			UserGroupAssignment asgn2 = new UserGroupAssignment();
+			asgn2.setAsPersonalGroup(user, group, now, "USER");
 			
 			sk.saveOrUpdate(user);
 			sk.save(group);
-			sk.save(asgn);
+			sk.save(asgn1);
+			sk.save(asgn2);
 							
+		}
+//		sk.commit();
+		// create missing user assignments to personal group
+		List<TrackingUser> allUsers = sk.createCriteria(TrackingUser.class).list();
+		for(TrackingUser usr: allUsers) {
+			OrganizationGroup group = usr.getPersonalGroup();
+			List<UserGroupAssignment> assignments = usersGroupAssignments(sk, usr.getUserId(), group.getGroupId(), new Date(), false, true, usr.getProvider());
+			List<GroupRoles> roles = userRolesInGroupsAtTime(assignments, usr, group.getGroupId(), null);
+			if(roles.size() == 0) {
+				UserGroupAssignment asgn1 = new UserGroupAssignment();
+				asgn1.setAsPersonalGroup(usr, group, now, "ADMIN");		
+				UserGroupAssignment asgn2 = new UserGroupAssignment();
+				asgn2.setAsPersonalGroup(usr, group, now, "USER");
+				sk.save(asgn1);
+				sk.save(asgn2);
+			} else {
+				if(!roles.get(0).isAdminRole()) {
+					UserGroupAssignment asgn1 = new UserGroupAssignment();
+					asgn1.setAsPersonalGroup(usr, group, now, "ADMIN");
+					sk.save(asgn1);
+				}
+				if(!roles.get(0).isUserRole()) {
+					UserGroupAssignment asgn2 = new UserGroupAssignment();
+					asgn2.setAsPersonalGroup(usr, group, now, "USER");
+					sk.save(asgn2);					
+				}
+			}
 		}
 		sk.commit();
 		return true;

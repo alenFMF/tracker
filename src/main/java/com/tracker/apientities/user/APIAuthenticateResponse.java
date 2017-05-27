@@ -11,4 +11,8 @@ public class APIAuthenticateResponse extends APIBaseResponse {
 			this.status = "AUTH_ERROR";
 		}
 	}
+	
+	public APIAuthenticateResponse(String status, String errorMessage) {
+		super(status, errorMessage);
+	}		
 }
