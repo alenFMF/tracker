@@ -172,7 +172,7 @@ public class GoOptiAuthProvider implements IAuthProvider {
 		
 		// existing user roles
 		List<UserGroupAssignment> userAssignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), null, now, false, true, getKey());
-		List<GroupRoles> userRoles = GroupEngine.userRolesInGroupsAtTime(userAssignments, user, null, null);	
+		List<GroupRoles> userRoles = GroupEngine.rolesForUserInGroupsAtTime(userAssignments, user, null, null);	
 		
 		Map<Pair<String, String>, Boolean> currentRoles = new HashMap<Pair<String, String>, Boolean>();
 		for(GroupRoles gr: userRoles) {

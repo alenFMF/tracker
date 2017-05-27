@@ -15,7 +15,7 @@ public class GroupRoles {
 		this.adminRole = adminRole;
 		this.userRole = userRole;
 	}
-
+	
 	public OrganizationGroup getGroup() {
 		return group;
 	}
