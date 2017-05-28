@@ -22,7 +22,7 @@ import com.tracker.utils.SessionKeeper;
 
 public class GoOptiAuthProvider implements IAuthProvider {
 	
-	private String service = "http://www.goopti.com/goopti-services/authentication/signin";
+	private String service = "https://www.goopti.com/goopti-services/authentication/signin";
 	
 	@Override
 	public AuthenticationObject authenticate(String username, String password) {
