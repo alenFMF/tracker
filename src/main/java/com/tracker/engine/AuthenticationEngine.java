@@ -74,7 +74,7 @@ public class AuthenticationEngine {
 			}
 			authObj = provider.authenticate(userId, password);
 			if(!authObj.getStatus().equals("OK")) {
-				ugen.status = "PROVIDER_AUTH_ERROR" + " " + authObj.getStatus();
+				ugen.status = "PROVIDER_AUTH_ERROR" + " " + authObj.getStatus() + " " + authObj.getErrorMessage();
 				return ugen;
 			}
 			ugen.provider = providerId;
