@@ -209,7 +209,38 @@ public class TestEngine {
 		}
 	}
 	
-	
+	public Date[][] timeinterval(Date[][] adminIntervals, Date[][] userIntervals){
+		Date [][] intervali = new Date [2][]; 
+		Integer n = 0;
+		for (Date[] i : adminIntervals){
+			for (Date [] j :userIntervals){
+				if (i[0].after(j[1])){
+					break;
+				}
+				if(i[1].before(j[0])){
+					continue;
+				}else{
+					if (i[0].before(j[0])){
+						intervali[0][n] = j[0];
+					}
+					else
+					{
+						intervali[0][n] = i[0];
+					}
+					if (i[1].after(j[1])){
+						intervali[1][n] = j[1];
+					}
+					else{
+						intervali[1][n] = i[1];
+					}
+					n = n+1;
+					
+				}
+				}
+		}
+		return null;
+		
+	}
 	//Table classes
 
 	public static class TableSample {

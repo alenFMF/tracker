@@ -13,6 +13,10 @@ import org.springframework.web.bind.annotation.ResponseBody;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.user.APIUserRegister;
+import com.tracker.apientities.vehicle.APIVehicleLinkList;
+import com.tracker.apientities.vehicle.APIVehicleLinkListResponse;
+import com.tracker.apientities.vehicle.APIVehicleLinkRegister;
+import com.tracker.apientities.vehicle.APIVehicleLinkRegisterResponse;
 import com.tracker.apientities.vehicle.APIVehicleProfile;
 import com.tracker.apientities.vehicle.APIVehicleProfileResponse;
 import com.tracker.apientities.vehicle.APIVehicleQuery;
@@ -58,6 +62,20 @@ public class VehicleController {
 	public ResponseEntity<APIVehicleProfileResponse> vehicleProfile(@RequestBody APIVehicleProfile req) {
 		inputLogger(req);
 		return new ResponseEntity<APIVehicleProfileResponse>(vehicleEngine.vehicleProfile(req), HttpStatus.OK);
+	}	
+	
+	@RequestMapping(value = "link/register", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIVehicleLinkRegisterResponse> linkRegister(@RequestBody APIVehicleLinkRegister req) {
+		inputLogger(req);
+		return new ResponseEntity<APIVehicleLinkRegisterResponse>(vehicleEngine.vehicleGroupRegister(req), HttpStatus.OK);
+	}
+	
+	@RequestMapping(value = "link/list", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIVehicleLinkListResponse> linkList(@RequestBody APIVehicleLinkList req) {
+		inputLogger(req);
+		return new ResponseEntity<APIVehicleLinkListResponse>(vehicleEngine.listAssignments(req), HttpStatus.OK);
 	}	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {

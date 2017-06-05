@@ -31,6 +31,7 @@ import com.tracker.db.AppConfiguration;
 import com.tracker.db.OrganizationGroup;
 import com.tracker.db.TrackingUser;
 import com.tracker.db.UserGroupAssignment;
+import com.tracker.db.Vehicle;
 import com.tracker.utils.SessionKeeper;
 
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
@@ -263,6 +264,12 @@ public class AuthenticationEngine {
 		if(token == null) return null;
 		UserAuthentication auth = this.tokens.authenticatedUserForToken(token);
 		return getUser(sk, auth.getUserId(), auth.getProvider());		
+	}
+	
+	public Boolean isAdmin(SessionKeeper sk, String token, String groupId){
+		TrackingUser user = getTokenUser(sk, token);
+		OrganizationGroup group = (OrganizationGroup)sk.createCriteria(OrganizationGroup.class).add(Restrictions.eq("groupId", groupId)).uniqueResult();
+		return (group.creator == user);
 	}
 	
 	public APIUserUpdateResponse update(APIUserUpdate req) {
