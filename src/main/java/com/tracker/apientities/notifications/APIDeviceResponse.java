@@ -1,4 +1,4 @@
-package com.tracker.apientities.devices;
+package com.tracker.apientities.notifications;
 
 import java.util.List;
 

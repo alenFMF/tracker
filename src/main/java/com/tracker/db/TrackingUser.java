@@ -6,6 +6,7 @@ import java.util.List;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.ManyToMany;
+import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 
@@ -32,6 +33,12 @@ public class TrackingUser extends BaseEntity {
 	
 	@OneToOne
 	public OrganizationGroup personalGroup;
+	
+	@OneToMany(mappedBy="user")
+	private List<NotificationRegistration> notificationDevices;
+	
+	@ManyToOne
+	private NotificationRegistration primaryNotificationDevice;
 	
 	public String getUserId() {
 		return userId;
@@ -128,6 +135,22 @@ public class TrackingUser extends BaseEntity {
 
 	public void setTimestamp(Date timestamp) {
 		this.timestamp = timestamp;
+	}
+
+	public List<NotificationRegistration> getNotificationDevices() {
+		return notificationDevices;
+	}
+
+	public void setNotificationDevices(List<NotificationRegistration> notificationDevices) {
+		this.notificationDevices = notificationDevices;
+	}
+
+	public NotificationRegistration getPrimaryNotificationDevice() {
+		return primaryNotificationDevice;
+	}
+
+	public void setPrimaryNotificationDevice(NotificationRegistration primaryNotificationDevice) {
+		this.primaryNotificationDevice = primaryNotificationDevice;
 	} 
 	
 }

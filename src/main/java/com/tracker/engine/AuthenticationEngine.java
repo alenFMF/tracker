@@ -2,6 +2,7 @@ package com.tracker.engine;
 
 import java.security.NoSuchAlgorithmException;
 import java.util.Date;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -11,6 +12,8 @@ import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import com.tracker.apientities.notifications.APIDevice;
+import com.tracker.apientities.notifications.APIRegistredDevice;
 import com.tracker.apientities.user.APIAuthProvidersResponse;
 import com.tracker.apientities.user.APIAuthenticate;
 import com.tracker.apientities.user.APIAuthenticateResponse;
@@ -28,6 +31,8 @@ import com.tracker.apientities.user.APIUserUpdateResponse;
 import com.tracker.apientities.user.APIUsersQuery;
 import com.tracker.apientities.user.APIUsersQueryResponse;
 import com.tracker.db.AppConfiguration;
+import com.tracker.db.DeviceRecord;
+import com.tracker.db.NotificationRegistration;
 import com.tracker.db.OrganizationGroup;
 import com.tracker.db.TrackingUser;
 import com.tracker.db.UserGroupAssignment;
@@ -105,7 +110,6 @@ public class AuthenticationEngine {
 		sk.save(ugen.personalGroup);
 		sk.save(asgn1);
 		sk.save(asgn2);
-		sk.commit();	
 		if(provider != null) {
 			provider.updateRoles(sk, user, authObj);
 		}
@@ -305,33 +309,45 @@ public class AuthenticationEngine {
 		return password.length() > 5;
 	} 
 	
-//	private boolean isSecretOk(SessionKeeper sk, String secret) {
-//		if(secret.length() < 8 && secret.length() > 0) return false;
-//		int n = ((Number) sk.createCriteria(TrackingUser.class).add(Restrictions.eq("postingSecret", secret)).setProjection(Projections.rowCount()).uniqueResult()).intValue(); 
-//		return n == 0;		
-//	}
-	
 	public APIAuthenticateResponse authenticate(APIAuthenticate req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
 			TrackingUser user = getUser(sk, req.userId, req.provider);
-			if(user != null) {
-				return new APIAuthenticateResponse(tokens.authenticate(sk, user, req.password, passwordEncoder, authFactory, req.provider));
+			String token = null;
+			String status = "OK";
+			if(user != null) { // existing user
+				token = tokens.authenticate(sk, user, req.password, passwordEncoder, authFactory, req.provider);
+			} else {
+					if(req.provider == null) {
+						return new APIAuthenticateResponse("AUTH_ERROR", "User does not exist.");
+					}
+					// user is null and provider != null
+					if(authFactory.getProvider(req.provider) == null) {
+						return new APIAuthenticateResponse("WRONG_PROVIDER", "");
+					}
+					// generate new provider user
+					UserGeneration ugen = generateUser(sk, req.userId, req.password, req.provider);
+					if(!ugen.status.equals("OK")) { 
+						return new APIAuthenticateResponse(ugen.status, "");
+					}
+					token = tokens.authenticateUserWithTokenFromProvider(ugen.user.getUserId(), ugen.auth.getToken(), req.provider);
 			}
-			// user is null
-			if(req.provider == null) {
+			if(token == null) {
 				return new APIAuthenticateResponse(null);
 			}
-			// user is null and provider != null
-			if(authFactory.getProvider(req.provider) == null) {
-				return new APIAuthenticateResponse("WRONG_PROVIDER", "");
+			if(req.device != null) {					
+				status = NotificationEngine.registerPrimaryDevice(sk, user, req.device, req.notificationToken);
+			} 
+			if(status.equals("OK")) {
+				sk.commit();
+				return new APIAuthenticateResponse(token);
 			}
-			// generate new provider user
-			UserGeneration ugen = generateUser(sk, req.userId, req.password, req.provider);
-			if(ugen.status == "OK") { 
-				return new APIAuthenticateResponse(tokens.authenticateUserWithTokenFromProvider(ugen.user.getUserId(), ugen.auth.getToken(), req.provider));
-			} else {
-				return new APIAuthenticateResponse(ugen.status, "");
-			}			
+			if(status.equals("OK_OVERRIDE")) {
+				sk.commit();
+				APIAuthenticateResponse res = new APIAuthenticateResponse(token);
+				res.primaryDeviceOverride = true;
+				return res;
+			} 
+			return new APIAuthenticateResponse(status, "");
 		}			
 	}
 	
@@ -347,9 +363,7 @@ public class AuthenticationEngine {
 			} else {
 				user = tokenUser;
 			}
-			if(user == null) return new APIUserProfileResponse("WRONG_USERID", ""); 
-			
-			
+			if(user == null) return new APIUserProfileResponse("WRONG_USERID", ""); 	
 			
 			APIUserProfileResponse resp = new APIUserProfileResponse();
 			resp.userId = user.getUserId();
@@ -359,6 +373,24 @@ public class AuthenticationEngine {
 //			resp.adminGroups = null;
 //			resp.userGroups = null;
 			resp.personalGroup = user.getPersonalGroup().getGroupId();
+			NotificationRegistration reg = user.getPrimaryNotificationDevice();
+			if(reg != null) {
+				APIRegistredDevice rd = new APIRegistredDevice();
+				rd.device = new APIDevice(reg.getDevice());
+				rd.registrationDate = reg.getTimestamp();
+				resp.primaryDevice = rd;
+			}
+			List<NotificationRegistration> regs = user.getNotificationDevices();
+			List<APIRegistredDevice> regDevices = new LinkedList<APIRegistredDevice>();
+			if(regs != null && regs.size() > 0) {
+				for(NotificationRegistration notf: regs) {
+					APIRegistredDevice rd = new APIRegistredDevice();
+					rd.device = new APIDevice(notf.getDevice());
+					rd.registrationDate = notf.getTimestamp();	
+					regDevices.add(rd);
+				}
+				resp.devices = regDevices;
+			}
 			return resp;
 		}
 	}	

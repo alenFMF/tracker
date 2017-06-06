@@ -17,7 +17,7 @@ import com.tracker.apientities.tracks.APITrackQuery;
 import com.tracker.apientities.tracks.APITrackQueryResponse;
 import com.tracker.apientities.tracks.APITrackerPost;
 import com.tracker.engine.AuthenticationEngine;
-import com.tracker.engine.TestEngine;
+import com.tracker.engine.TrackerEngine;
 
 import io.swagger.annotations.ApiOperation;
 
@@ -29,7 +29,7 @@ public class TrackerController {
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(APIBaseResponse.class);	
 	
 	@Autowired
-	TestEngine testEngine;
+	TrackerEngine testEngine;
 	
 	@Autowired 
 	AuthenticationEngine authEngine;

@@ -23,6 +23,15 @@
             </list>
         </property>
 	</bean>
+
+	<bean id="notificationProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
+        <property name="locations">
+            <list>
+            	<value>classpath*:notification.properties</value>
+                <value>classpath*:my.notification.properties</value>
+            </list>
+        </property>
+	</bean>	
 	
 	<bean id="generalProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
         <property name="locations">

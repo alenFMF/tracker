@@ -13,7 +13,6 @@ import java.security.SecureRandom;
 
 public class TokenStorage {
 	private Map<String, UserAuthentication> tokenToAuth = new ConcurrentHashMap<>();	
-	private Map<String, UserAuthentication> userToAuth = new ConcurrentHashMap<>();	
 	private Map<String, ResetToken> passwordResetTokens = new ConcurrentHashMap<>();
 	private SecureRandom generator;
 	private int tokenLength = 24;
@@ -23,7 +22,6 @@ public class TokenStorage {
 	}
 	
 	private void invalidate(UserAuthentication auth) {
-		userToAuth.remove(auth.getUserId());
 		tokenToAuth.remove(auth.getToken());					
 	}
 	
@@ -32,7 +30,7 @@ public class TokenStorage {
 	}	
 	
 	private boolean checkOrInvalidate(UserAuthentication auth) {
-		if(auth.isValid()) {
+		if(!auth.isValid()) {
 			invalidate(auth);
 			return false;
 		}		
@@ -50,28 +48,20 @@ public class TokenStorage {
 		}
 		return auth;
 	}
-	
-	public boolean isAuthenticated(String userId) {
-		return userToAuth.containsKey(userId)
-					&& checkOrInvalidate(userToAuth.get(userId));
-	}
-	
+		
 	private String reauthenticateUser(String userId, String provider) {	
 		String token = null;
 		while(true) {   // ensure unique token
 			token = generateToken();
-			if(!userToAuth.containsKey(token)) break;
+			if(!tokenToAuth.containsKey(token)) break;
 		}
 		
 		UserAuthentication auth = new UserAuthentication(userId, token, provider);
-		userToAuth.put(userId, auth);
 		tokenToAuth.put(token, auth);
 		return token;
 	}
 	
 	public String authenticate(SessionKeeper sk, TrackingUser user, String password, PasswordEncoder passwordEncoder, AuthProviderFactory authFactory, String providerId) {
-//		TrackingUser user = (TrackingUser)sk.createCriteria(TrackingUser.class).add(Restrictions.eq("userId", userId)).uniqueResult();
-//		if(user == null) return null;
 		if(providerId == null) {
 			if(!user.checkPassword(password, passwordEncoder)) return null;
 			return reauthenticateUser(user.getUserId(), null);
@@ -91,9 +81,9 @@ public class TokenStorage {
 	}
 	
 	public String authenticateUserWithTokenFromProvider(String userId, String token, String provider) {
-		if(userToAuth.containsKey(token)) return null; // duplicate token, reject
+		if(tokenToAuth.containsKey(token)) return null; // duplicate token, reject
 		UserAuthentication auth = new UserAuthentication(userId, token, provider);
-		userToAuth.put(userId, auth);
+//		userToAuth.put(userId, auth);
 		tokenToAuth.put(token, auth);
 		return token;
 	}
