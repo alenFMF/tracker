@@ -120,6 +120,19 @@
 		    <version>1.7.13</version>
 		</dependency>
 		
+		<!-- https://mvnrepository.com/artifact/com.ganyo/gcm-server -->
+		<dependency>
+		    <groupId>com.ganyo</groupId>
+		    <artifactId>gcm-server</artifactId>
+		    <version>1.0.2</version>
+		</dependency>
+		
+		<!-- https://mvnrepository.com/artifact/com.notnoop.apns/apns -->
+		<dependency>
+		    <groupId>com.notnoop.apns</groupId>
+		    <artifactId>apns</artifactId>
+		    <version>1.0.0.Beta6</version>
+		</dependency>
 		
 	</dependencies>
 	<build>

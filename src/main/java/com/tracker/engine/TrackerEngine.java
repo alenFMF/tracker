@@ -21,8 +21,8 @@ import org.springframework.stereotype.Component;
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
-import com.tracker.apientities.devices.APIDeviceQuery;
-import com.tracker.apientities.devices.APIDeviceResponse;
+import com.tracker.apientities.notifications.APIDeviceQuery;
+import com.tracker.apientities.notifications.APIDeviceResponse;
 import com.tracker.apientities.tracks.APIGPSLocation;
 import com.tracker.apientities.tracks.APITrackDetail;
 import com.tracker.apientities.tracks.APITrackQuery;
@@ -39,7 +39,7 @@ import com.tracker.db.TrackingUser;
 import com.tracker.utils.SessionKeeper;
 
 @Component
-public class TestEngine {
+public class TrackerEngine {
 
 	@Autowired
 	private SessionFactory sessionFactory;
@@ -94,6 +94,7 @@ public class TestEngine {
 					}
 					acr.setIsMoving(loc.is_moving);
 					acr.setOdometer(loc.odometer);
+					r.setActivity(acr);
 					sk.save(acr);
 				}
 //				r.setRecordUUID(loc.uuid);
@@ -102,6 +103,7 @@ public class TestEngine {
 					BatteryRecord bat = new BatteryRecord();
 					bat.setBatteryCharging(loc.battery.is_charging);
 					bat.setBatteryLevel(loc.battery.level);
+					r.setBattery(bat);
 					sk.save(bat);
 				}
 				if(req.device != null) {

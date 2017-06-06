@@ -219,7 +219,7 @@ public class GoOptiAuthProvider implements IAuthProvider {
 			sk.save(new UserGroupAssignment(user, idToGroup.get(oneRole.getLeft()), now, oneRole.getRight(), "ALLOW"));
 		}
 		
-		sk.commit();
+//		sk.commit();
 	}
 
 	

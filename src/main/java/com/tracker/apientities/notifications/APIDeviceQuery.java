@@ -1,4 +1,4 @@
-package com.tracker.apientities.devices;
+package com.tracker.apientities.notifications;
 
 public class APIDeviceQuery {
 	public String token;

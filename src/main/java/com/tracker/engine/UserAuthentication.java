@@ -5,7 +5,7 @@ import java.util.Date;
 import org.apache.commons.lang3.time.DateUtils;
 
 public class UserAuthentication {
-	private static int tokenDurationInMinutes;
+	private static int tokenDurationInMinutes = 60*48;
 	private String userId;
 	private String provider;
 	private Date validUntil;

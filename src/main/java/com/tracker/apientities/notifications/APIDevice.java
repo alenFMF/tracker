@@ -1,4 +1,6 @@
-package com.tracker.apientities.devices;
+package com.tracker.apientities.notifications;
+
+import com.tracker.db.DeviceRecord;
 
 public class APIDevice {
 	public String uuid;
@@ -14,5 +16,13 @@ public class APIDevice {
 		this.model = model;
 		this.version = version;
 		this.platform = platform;
+	}
+	
+	public APIDevice(DeviceRecord device) {
+		this.uuid = device.getUuid();
+		this.manufacturer = device.getManufacturer();
+		this.model = device.getModel();
+		this.version = device.getVersion();
+		this.platform = device.getPlatform();
 	}
 }

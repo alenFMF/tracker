@@ -139,6 +139,9 @@ public class GroupEngine {
 		if(provider != null) {
 			c.add(Restrictions.eq("User.provider", provider));
 			c.add(Restrictions.eq("Group.provider", provider));
+		} else {
+			c.add(Restrictions.isNull("User.provider"));
+			c.add(Restrictions.isNull("Group.provider"));
 		}
 		if(pendingOnly) {
 			c.add(Restrictions.isNull("accepted"));
@@ -630,9 +633,9 @@ public class GroupEngine {
 			}
 			List<UserGroupAssignment> assignments = null;
 			if(req.forGroupId == null) {
-				assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), null, new Date(), req.pendingOnly != null && req.pendingOnly, req.accept, null);
+				assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), null, new Date(), req.pendingOnly != null && req.pendingOnly, req.accept, user.getProvider());
 			} else {
-				assignments = GroupEngine.usersGroupAssignments(sk, null, req.forGroupId, new Date(), req.pendingOnly != null && req.pendingOnly, req.accept, null);
+				assignments = GroupEngine.usersGroupAssignments(sk, null, req.forGroupId, new Date(), req.pendingOnly != null && req.pendingOnly, req.accept, user.getProvider());
 			}		
 			return new APIUserGroupAssignmentResponse(assignments.stream()
 								.map(x -> new APIUserGroupAssignmentDetail(x))
