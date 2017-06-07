@@ -133,7 +133,7 @@ public class NotificationEngine {
 														.add(Restrictions.eq("device", device))
 														.uniqueResult();
 				if(regtoken != null) {
-					if(!regtoken.notificationToken.equals(notificationToken)) {
+					if(regtoken.notificationToken == null || !regtoken.notificationToken.equals(notificationToken)) {
 						regtoken.notificationToken = notificationToken;
 						sk.saveOrUpdate(regtoken);
 					}
