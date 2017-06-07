@@ -40,6 +40,7 @@ public class NotificationService {
 				    	 .build();						
 		 } catch (Exception ex) {
 			 System.err.println("ERROR: Problem with Notification server configuration. Notification server disabled.");
+			 ex.printStackTrace();
 //			 throw new RuntimeException(ex);
 		 } finally {
 				if (input != null) {
