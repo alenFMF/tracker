@@ -7,6 +7,7 @@ public class APISendNotification {
 	public List<APIUsers> recipients;  
 	public String message;
 	public String messageType;
+	public String title;
 	public String type;
 	public Integer travelOrderId;
 	public Integer taskGoalId;

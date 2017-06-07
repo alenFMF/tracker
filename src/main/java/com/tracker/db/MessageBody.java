@@ -6,6 +6,7 @@ import javax.persistence.Entity;
 public class MessageBody extends BaseEntity {
 	public String message;
 	public String messageType;
+	public String title; 
 	
 	public String getMessage() {
 		return message;
@@ -18,6 +19,12 @@ public class MessageBody extends BaseEntity {
 	}
 	public void setMessageType(String messageType) {
 		this.messageType = messageType;
+	}
+	public String getTitle() {
+		return title;
+	}
+	public void setTitle(String title) {
+		this.title = title;
 	}
 		
 }

@@ -151,7 +151,7 @@ public class GroupEngine {
 			}
 			
 			c.add(Restrictions.le("timestamp", time));	// accepted only	
-			c.addOrder(Order.desc("timestamp"));
+			c.addOrder(Order.asc("timestamp"));
 		}	
 		
 		return c.list();
