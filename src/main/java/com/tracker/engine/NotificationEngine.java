@@ -9,6 +9,7 @@ import java.util.stream.Collectors;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
+import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -27,6 +28,8 @@ import com.tracker.apientities.notifications.APIDeviceRegister;
 import com.tracker.apientities.notifications.APIDeviceResponse;
 import com.tracker.apientities.notifications.APIDeviceUpdate;
 import com.tracker.apientities.notifications.APINotificationStatus;
+import com.tracker.apientities.notifications.APINotifications;
+import com.tracker.apientities.notifications.APINotificationsResponse;
 import com.tracker.apientities.notifications.APISendNotification;
 import com.tracker.apientities.notifications.APISendNotificationResponse;
 import com.tracker.apientities.notifications.APIUsers;
@@ -234,19 +237,37 @@ public class NotificationEngine {
 						records.add(Pair.of(status, null));
 						continue;
 					} 
-					send = true;
+					// get recieiver token
+					NotificationRegistration deviceRegistration = user.getPrimaryNotificationDevice();
+					String regToken = deviceRegistration == null ? null : deviceRegistration.getNotificationToken();
+					if( deviceRegistration == null || regToken == null) {
+						APINotificationStatus stat = new APINotificationStatus(user, "RECIPIENT_HAS_NO_DEVICE", "");
+						records.add(Pair.of(stat, null));
+						continue;
+					}
+					DeviceRecord device = deviceRegistration.getDevice();
+					String platform = device.getPlatform();
+					String title = req.title == null ? "" : req.title;
+					if(notificationService.push(regToken, title, req.message, platform)) {
+							send = true;
+					} else {
+							APINotificationStatus stat = new APINotificationStatus(user, "PUSH_FAILED", platform);
+							records.add(Pair.of(stat, null));
+							continue;													
+					}
+					
 					EventMessage msg = new EventMessage();
 					msg.setSender(tokenUser);
 					msg.setReceiver(user);
-					msg.setSent(false);
+					msg.setSent(true);
+					msg.setType("NOTIFICATION");					
 					msg.setTimestamp(now);
+					msg.setTimeRecorded(now);
 					msg.setBody(mBody);
 					APINotificationStatus stat = new APINotificationStatus(user, "OK", "");
 					records.add(Pair.of(stat, msg));
 				}
 				if(send) {
-					// send to gcm and apns in groups
-					// update statuses
 					sk.save(mBody);
 					for(Pair<APINotificationStatus, EventMessage> p: records) {
 						if(p.getRight() != null) {
@@ -266,43 +287,56 @@ public class NotificationEngine {
 				APISendNotificationResponse res = new APISendNotificationResponse();
 				res.notificationStatus = statuses;
 				return res;				
-			} //else if(req.type.equals("XXX")) {}
+			} 
+			
+			if(req.type.equals("START") || req.type.equals("END")) {
+				EventMessage msg = new EventMessage();
+				msg.setSender(tokenUser);
+				msg.setSent(true);
+				msg.setTimestamp(now);
+				msg.setTimeRecorded(now);
+				msg.setType(req.type);
+				sk.save(msg);
+				sk.commit();
+				APINotificationStatus stat = new APINotificationStatus(tokenUser, "OK", "");
+				stat.messageId = msg.getId();
+				APISendNotificationResponse res = new APISendNotificationResponse();
+				List<APINotificationStatus> statuses = new LinkedList<APINotificationStatus>();
+				statuses.add(stat);
+				res.notificationStatus = statuses;
+				return res;
+			}
 			return new APISendNotificationResponse("ERROR","");
 		}					
-	}	
-	
-    public boolean pushNotificationToGCM(List<String> tokens, String title, String message){
-        final int retries = 3;        
-    	Sender sender = notificationService.getGcmService();
-    	
-        Message msg = new Message.Builder()
-        		.addData("title", title == null ? "" : title)
-        		.addData("message", message == null ? "" : message)
-        		.build();
-        try {
-                MulticastResult result = sender.send(msg, tokens, retries);
-        } catch (IOException e) {
-        	// set all statuses to exception
-//            System.out.println("IO Exception");
-        } 
-        return true;
+	}
 
-    }
-    
-    public boolean pushNotificationToAPNS(List<String> tokens, String title, String message){
-    	try {
-    		// Fix for multiple messages
-    		ApnsService service = notificationService.getApnsService();
-	    	 String payload = APNS.newPayload()
-		    	 .alertBody(message)
-		    	 .alertTitle(title).build();
-	    	 @SuppressWarnings("unchecked")
-			List<ApnsNotification> notification = (List<ApnsNotification>)service.push(tokens, payload);    	    	 
-//	    	 update statuses
-    	} catch (Exception e) {
-            System.out.println("IO Exception");
-        } 
-    	return true;
-    }	
-    
+//	public APINotificationsResponse list(APINotifications req) {
+//		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
+//			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
+//			if(tokenUser == null) {
+//				return new APINotificationsResponse("AUTH_ERROR", "");
+//			}
+//			if(req.fromDate == null) {
+//				return new APINotificationsResponse("DATE_ERROR", "fromDate must be non-null.");
+//			}
+//			Criteria crit1 = sk.createCriteria(EventMessage.class)
+//					.add(Restrictions.eq("sender", tokenUser))
+//					.add(Restrictions.ge("timestamp", req.fromDate));
+//			if(req.untilDate != null) {
+//					crit1.add(Restrictions.le("timestamp", req.untilDate));		
+//			}
+//			crit1.addOrder(Order.asc("timestamp"));
+//			// dokončaj
+//					 
+//					 
+//			
+//					
+//					.createAlias("sender", "Sender")
+//					.createAlias("receiver", "Receiver")
+//					.createAlias("travelOrder", "TravelOrder")
+//					.createAlias("body", "Body")
+//					.add(Restrictions.)
+//			
+//		}
+//	}	
 }

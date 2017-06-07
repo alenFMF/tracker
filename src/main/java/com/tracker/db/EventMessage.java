@@ -66,15 +66,16 @@ public class EventMessage extends BaseEntity {
 	public void setTravelOrder(TravelOrder travelOrder) {
 		this.travelOrder = travelOrder;
 	}
-
+	public Date getTimeRecorded() {
+		return timeRecorded;
+	}
+	public void setTimeRecorded(Date timeRecorded) {
+		this.timeRecorded = timeRecorded;
+	}
 }
 
 /* Possible message types:
  * NOTIFICATION - notification message 
- * TO_START - travel order start event
- * TO_END - travel order end event
- * STOP_MOVING - 
- * START_MOVING - 
- * GOAL_REACHED - Goal reached
- * GOAL_LEFT - Goal left
+ * START - start/resume tracking
+ * STOP - stop/pause tracking
  */ 
