@@ -1,6 +1,5 @@
 package com.tracker.engine;
 
-import java.io.IOException;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
@@ -14,19 +13,13 @@ import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.google.android.gcm.server.Message;
-import com.google.android.gcm.server.MulticastResult;
-import com.google.android.gcm.server.Result;
-import com.google.android.gcm.server.Sender;
-import com.notnoop.apns.APNS;
-import com.notnoop.apns.ApnsNotification;
-import com.notnoop.apns.ApnsService;
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.notifications.APIDevice;
 import com.tracker.apientities.notifications.APIDeviceQuery;
 import com.tracker.apientities.notifications.APIDeviceRegister;
 import com.tracker.apientities.notifications.APIDeviceResponse;
 import com.tracker.apientities.notifications.APIDeviceUpdate;
+import com.tracker.apientities.notifications.APINotificationMessage;
 import com.tracker.apientities.notifications.APINotificationStatus;
 import com.tracker.apientities.notifications.APINotifications;
 import com.tracker.apientities.notifications.APINotificationsResponse;
@@ -117,7 +110,7 @@ public class NotificationEngine {
 				return "WRONG_PLATFORM";
 			}
 			DeviceRecord device = (DeviceRecord)sk.createCriteria(DeviceRecord.class).add(Restrictions.eq("uuid", deviceRecord.uuid)).uniqueResult();
-			
+			boolean deviceOverride = false;
 			Date now = new Date();
 			NotificationRegistration regtoken = null;
 			if(device == null) {
@@ -132,11 +125,17 @@ public class NotificationEngine {
 														.add(Restrictions.eq("user", user))
 														.add(Restrictions.eq("device", device))
 														.uniqueResult();
-				if(regtoken != null) {
+				if(regtoken != null) {		
+						
+					String currentToken = user.getPrimaryNotificationDevice() == null ? null : user.getPrimaryNotificationDevice().notificationToken;	
+					deviceOverride = currentToken != null && !currentToken.equals(notificationToken);
+					
+					// fix token for existing device
 					if(regtoken.notificationToken == null || !regtoken.notificationToken.equals(notificationToken)) {
 						regtoken.notificationToken = notificationToken;
 						sk.saveOrUpdate(regtoken);
 					}
+					// make device primary
 					if(user.getPrimaryNotificationDevice() == null || !user.getPrimaryNotificationDevice().equals(regtoken)) {
 						user.setPrimaryNotificationDevice(regtoken);
 						sk.saveOrUpdate(user);
@@ -148,10 +147,7 @@ public class NotificationEngine {
 					sk.saveOrUpdate(user);
 				}
 			}
-			boolean deviceOverride = false;
-			if(user.getPrimaryNotificationDevice() != null && !user.getPrimaryNotificationDevice().getDevice().getUuid().equals(regtoken.getDevice().getUuid())) {
-				deviceOverride = true;
-			}
+	
 			if(deviceOverride) return "OK_OVERRIDE";
 			return "OK";
 	}	
@@ -217,7 +213,7 @@ public class NotificationEngine {
 			if(req.message != null) {
 				mBody = new MessageBody();
 				mBody.setMessageType(req.messageType);
-				mBody.setMessageType(req.message);				
+				mBody.setMessage(req.message);				
 			}
 			Date now = new Date();
 			boolean send = false;
@@ -260,7 +256,8 @@ public class NotificationEngine {
 					msg.setSender(tokenUser);
 					msg.setReceiver(user);
 					msg.setSent(true);
-					msg.setType("NOTIFICATION");					
+					msg.setType("NOTIFICATION");
+					msg.setTitle(req.title);
 					msg.setTimestamp(now);
 					msg.setTimeRecorded(now);
 					msg.setBody(mBody);
@@ -310,33 +307,43 @@ public class NotificationEngine {
 		}					
 	}
 
-//	public APINotificationsResponse list(APINotifications req) {
-//		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
-//			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
-//			if(tokenUser == null) {
-//				return new APINotificationsResponse("AUTH_ERROR", "");
-//			}
-//			if(req.fromDate == null) {
-//				return new APINotificationsResponse("DATE_ERROR", "fromDate must be non-null.");
-//			}
-//			Criteria crit1 = sk.createCriteria(EventMessage.class)
-//					.add(Restrictions.eq("sender", tokenUser))
-//					.add(Restrictions.ge("timestamp", req.fromDate));
-//			if(req.untilDate != null) {
-//					crit1.add(Restrictions.le("timestamp", req.untilDate));		
-//			}
-//			crit1.addOrder(Order.asc("timestamp"));
-//			// dokončaj
-//					 
-//					 
-//			
-//					
-//					.createAlias("sender", "Sender")
-//					.createAlias("receiver", "Receiver")
-//					.createAlias("travelOrder", "TravelOrder")
-//					.createAlias("body", "Body")
-//					.add(Restrictions.)
-//			
-//		}
-//	}	
+	public APINotificationsResponse list(APINotifications req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
+			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
+			if(tokenUser == null) {
+				return new APINotificationsResponse("AUTH_ERROR", "");
+			}
+			if(req.fromDate == null) {
+				return new APINotificationsResponse("DATE_ERROR", "fromDate must be non-null.");
+			}
+			Criteria crit1 = sk.createCriteria(EventMessage.class)
+					.add(Restrictions.eq("sender", tokenUser))
+					.add(Restrictions.ge("timestamp", req.fromDate));
+			if(req.untilDate != null) {
+					crit1.add(Restrictions.le("timestamp", req.untilDate));		
+			}
+			crit1.addOrder(Order.asc("timestamp"));
+			List<EventMessage> sentMessages = crit1.list();
+			List<APINotificationMessage> sentResp = new LinkedList<APINotificationMessage>();
+			for(EventMessage mes: sentMessages) {
+				sentResp.add(new APINotificationMessage(mes));
+			}
+			APINotificationsResponse res = new APINotificationsResponse();
+			res.sent = sentResp;
+			Criteria crit2 = sk.createCriteria(EventMessage.class)
+					.add(Restrictions.eq("receiver", tokenUser))
+					.add(Restrictions.ge("timestamp", req.fromDate));
+			if(req.untilDate != null) {
+					crit2.add(Restrictions.le("timestamp", req.untilDate));		
+			}
+			crit2.addOrder(Order.asc("timestamp"));
+			List<EventMessage> receivedMessages = crit2.list();
+			List<APINotificationMessage> receivedResp = new LinkedList<APINotificationMessage>();
+			for(EventMessage mes: receivedMessages) {
+				receivedResp.add(new APINotificationMessage(mes));
+			}		
+			res.received = receivedResp;
+			return res;			
+		}
+	}	
 }

@@ -266,6 +266,7 @@ public class AuthenticationEngine {
 	public TrackingUser getTokenUser(SessionKeeper sk, String token) {
 		if(token == null) return null;
 		UserAuthentication auth = this.tokens.authenticatedUserForToken(token);
+		if(auth == null) return null;
 		return getUser(sk, auth.getUserId(), auth.getProvider());		
 	}
 	
@@ -334,12 +335,17 @@ public class AuthenticationEngine {
 			if(token == null) {
 				return new APIAuthenticateResponse(null);
 			}
+			if((req.device == null && req.notificationToken != null) || (req.device != null && req.notificationToken == null)) {
+				return new APIAuthenticateResponse("MISSING_DEVICE_OR_TOKEN", "Missing exactly one of device or notification token.");
+			}
 			if(req.device != null) {					
 				status = NotificationEngine.registerPrimaryDevice(sk, user, req.device, req.notificationToken);
 			} 
 			if(status.equals("OK")) {
-				sk.commit();
-				return new APIAuthenticateResponse(token);
+				sk.commit();				
+				APIAuthenticateResponse res = new APIAuthenticateResponse(token);
+				res.primaryDeviceOverride = false;
+				return res;
 			}
 			if(status.equals("OK_OVERRIDE")) {
 				sk.commit();

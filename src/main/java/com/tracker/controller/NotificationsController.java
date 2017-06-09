@@ -56,12 +56,12 @@ public class NotificationsController {
 		return new ResponseEntity<APISendNotificationResponse>(notificationEngine.notify(req), HttpStatus.OK);
 	}	
 
-//	@RequestMapping(value = "notify", method = RequestMethod.POST)
-//	@ResponseBody
-//	public ResponseEntity<APINotificationsResponse> notifyUsers(@RequestBody APINotifications req) {
-//		inputLogger(req);
-//		return new ResponseEntity<APINotificationsResponse>(notificationEngine.list(req), HttpStatus.OK);
-//	}	
+	@RequestMapping(value = "list", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APINotificationsResponse> listMessages(@RequestBody APINotifications req) {
+		inputLogger(req);
+		return new ResponseEntity<APINotificationsResponse>(notificationEngine.list(req), HttpStatus.OK);
+	}	
 //	
 //	@RequestMapping(value = "update", method = RequestMethod.POST)
 //	@ResponseBody
