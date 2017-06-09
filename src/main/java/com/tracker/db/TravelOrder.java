@@ -23,7 +23,7 @@ public class TravelOrder extends BaseEntity {
 	public List<TaskGoal> taskGoals;
 	
 	@OneToMany(mappedBy="travelOrder")
-	@OrderBy("timeRecorded")
+	@OrderBy("timestamp")
 	public List<EventMessage> events;
 
 	public String getTravelOrderId() {

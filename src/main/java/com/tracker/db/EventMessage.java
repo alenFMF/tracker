@@ -21,6 +21,8 @@ public class EventMessage extends BaseEntity {
 	
 	public Boolean sent;    // true if message is of type that is communicated
 
+	public String title;
+	
 	@ManyToOne
 	public MessageBody body;
 	
@@ -72,6 +74,13 @@ public class EventMessage extends BaseEntity {
 	public void setTimeRecorded(Date timeRecorded) {
 		this.timeRecorded = timeRecorded;
 	}
+	public String getTitle() {
+		return title;
+	}
+	public void setTitle(String title) {
+		this.title = title;
+	}
+	
 }
 
 /* Possible message types:
