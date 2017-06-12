@@ -7,6 +7,8 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import java.util.Calendar;
+import java.util.ArrayList;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.hibernate.Criteria;
@@ -37,6 +39,8 @@ import com.tracker.db.OrganizationGroup;
 import com.tracker.db.TrackingUser;
 import com.tracker.db.UserGroupAssignment;
 import com.tracker.utils.SessionKeeper;
+
+import static java.util.Collections.binarySearch;
 
 @Component
 public class GroupEngine {
@@ -177,7 +181,135 @@ public class GroupEngine {
 	    	   (asgn.getFromDate() != null && (asgn.getFromDate().compareTo(time) <= 0 && 
 	    	   									(asgn.getUntilDate() == null || asgn.getUntilDate().compareTo(time) >= 0)));
 	}
-	
+
+	private static List<Pair<Date, Date>> calculateIntervals(SessionKeeper sk, String userId, String groupId, String adminId, Date fromDate, Date untilDate) {
+		if (userId == null || groupId == null) return null;
+		Criteria userC = sk.createCriteria(UserGroupAssignment.class);
+		userC.createAlias("user", "User");
+		userC.createAlias("group", "Group");
+		userC.add(Restrictions.eq("groupRole", "USER"));
+		userC.add(Restrictions.eq("Group.groupId", groupId));
+		userC.add(Restrictions.le("fromDate", untilDate));
+		userC.add(Restrictions.eq("User.userId", userId));
+		userC.add(Restrictions.eq("accepted", true));
+		userC.addOrder(Order.desc("timestamp"));
+		List<UserGroupAssignment> userAssignments = userC.list();
+		List<Pair<Date, Date>> userIntervals = getAllowedIntervals(userAssignments, fromDate, untilDate);
+		if (adminId != null) {
+			Criteria adminC = sk.createCriteria(UserGroupAssignment.class);
+			adminC.createAlias("user", "User");
+			adminC.createAlias("group", "Group");
+			adminC.add(Restrictions.eq("groupRole", "ADMIN"));
+			adminC.add(Restrictions.eq("Group.groupId", groupId));
+			adminC.add(Restrictions.le("fromDate", untilDate));
+			adminC.add(Restrictions.eq("User.userId", adminId));
+			adminC.add(Restrictions.eq("accepted", true));
+			adminC.addOrder(Order.desc("timestamp"));
+			List<UserGroupAssignment> adminAssignments = adminC.list();
+			List<Pair<Date, Date>> adminIntervals = getAllowedIntervals(adminAssignments, fromDate, untilDate);
+		}
+		return null;
+	}
+
+	private static List<Pair<Date, Date>> getAllowedIntervals(List<UserGroupAssignment> assignments, Date fromDate, Date untilDate) {
+		List<Pair<Date, Date>> intervals = new ArrayList<>();
+		for (UserGroupAssignment assignment : assignments) {
+			List<Pair<Date, Date>> allIntervals = new ArrayList<>();
+			if (assignment.getPeriodic() == null) {
+				Date a = assignment.getFromDate() == null ? fromDate : assignment.getFromDate();
+				Date b = assignment.getUntilDate() == null ? untilDate : assignment.getUntilDate();
+				if (a.before(untilDate) && b.after(fromDate)) {
+					a = fromDate.after(a) ? fromDate : a;
+					b = untilDate.before(b) ? untilDate : b;
+					allIntervals.add(Pair.of(a, b));
+				} else {
+					continue;
+				}
+			} else {
+				for (int i = 0; i < assignment.getRepeatTimes(); i++) {
+					Calendar calendarFrom = Calendar.getInstance();
+					Calendar calendarUntil = Calendar.getInstance();
+					calendarFrom.setTime(assignment.getFromDate());
+					calendarUntil.setTime(assignment.getUntilDate());
+					if (assignment.getPeriodic().equals("DAILY")) {
+						calendarFrom.add(Calendar.DATE, i);
+						calendarUntil.add(Calendar.DATE, i);
+					} else if (assignment.getPeriodic().equals("WEEKLY")) {
+						calendarFrom.add(Calendar.DATE, 7*i);
+						calendarUntil.add(Calendar.DATE, 7*i);
+					} else if (assignment.getPeriodic().equals("MONTLY")) {
+						calendarFrom.add(Calendar.MONTH, i);
+						calendarUntil.add(Calendar.MONTH, i);
+					} else if (assignment.getPeriodic().equals("YEARLY")) {
+						calendarFrom.add(Calendar.YEAR, i);
+						calendarUntil.add(Calendar.YEAR, i);
+					}
+					if (calendarFrom.getTime().before(untilDate) && calendarUntil.getTime().after(fromDate)) {
+						Date a = fromDate.after(calendarFrom.getTime()) ? fromDate : calendarFrom.getTime();
+						Date b = untilDate.before(calendarUntil.getTime()) ? untilDate : calendarUntil.getTime();
+						allIntervals.add(Pair.of(a, b));
+					} else if (calendarFrom.getTime().after(untilDate)) {
+						break;
+					}
+				}
+			}
+
+			for (Pair<Date, Date> newInterval : allIntervals) {
+				Comparator<Pair<Date, Date>> fromDateComparator = (d1, d2) -> {
+                    if (d1.getLeft().equals(d2.getLeft())) return 0;
+                    return d1.getLeft().before(d2.getLeft()) ? -1 : 1;
+                };
+				Comparator<Pair<Date, Date>> untilDateComparator = (d1, d2) -> {
+					if (d1.getRight().equals(d2.getRight())) return 0;
+					return d1.getRight().before(d2.getRight()) ? -1 : 1;
+				};
+				Integer fromIndex = binarySearch(intervals, newInterval, fromDateComparator);
+				Integer untilIndex = binarySearch(intervals, newInterval, untilDateComparator);
+				fromIndex = fromIndex < 0 ? Math.abs(fromIndex) - 1 : fromIndex;
+				untilIndex = untilIndex < 0 ? Math.abs(untilIndex) - 1 : untilIndex;
+				if (newInterval.getRight().after(intervals.get(untilIndex).getLeft())) {
+					if (fromIndex > 0 && newInterval.getLeft().before(intervals.get(fromIndex - 1).getRight())) {
+						if (assignment.getGrant().equals("ALLOW")) {
+							intervals.add(fromIndex - 1, Pair.of(intervals.get(fromIndex - 1).getLeft(), intervals.get(untilIndex).getRight()));
+							fromIndex--;
+						} else if (assignment.getGrant().equals("DENY")) {
+							intervals.set(fromIndex - 1, Pair.of(intervals.get(fromIndex - 1).getLeft(), newInterval.getLeft()));
+							intervals.set(untilIndex, Pair.of(newInterval.getRight(), intervals.get(untilIndex).getRight()));
+						}
+					} else {
+						if (assignment.getGrant().equals("ALLOW")) {
+							intervals.add(fromIndex, Pair.of(newInterval.getLeft(), intervals.get(untilIndex).getRight()));
+						} else if (assignment.getGrant().equals("DENY")) {
+							intervals.set(untilIndex, Pair.of(newInterval.getRight(), intervals.get(untilIndex).getRight()));
+						}
+					}
+				} else {
+					if (fromIndex > 0 && newInterval.getLeft().before(intervals.get(fromIndex - 1).getRight())) {
+						if (assignment.getGrant().equals("ALLOW")) {
+							intervals.add(fromIndex - 1, Pair.of(intervals.get(fromIndex - 1).getLeft(), newInterval.getRight()));
+							fromIndex--;
+						} else if (assignment.getGrant().equals("DENY")) {
+							intervals.set(fromIndex - 1, Pair.of(intervals.get(fromIndex - 1).getLeft(), newInterval.getLeft()));
+						}
+					} else {
+						if (assignment.getGrant().equals("ALLOW")) {
+							intervals.add(fromIndex, Pair.of(newInterval.getLeft(), newInterval.getRight()));
+							untilIndex--;
+						}
+					}
+				}
+				if (assignment.getGrant().equals("DENY")) {
+					fromIndex--;
+					untilIndex -= 2;
+				}
+				for (Integer i = untilIndex - fromIndex; i >= 0; i--) {
+					intervals.remove(fromIndex + i + 1);
+				}
+			}
+		}
+		return intervals;
+	}
+
 	/**
 	 * Returns effective roles for a user in groups based on assignments.
 	 * @param assignments - assignments from which roles are deduced (must be all existing containing 'time') 
@@ -370,7 +502,7 @@ public class GroupEngine {
 			    det.groupId = group.getGroupId();
 			    det.description = group.getDescription();
 			    det.privateGroup = group.getPrivateGroup();
-				
+
 				List<GroupRoles> rolesToList = new LinkedList<GroupRoles>();
 			    if(role.isAdminRole() || (group.getPersonalGroupUser() != null && user.getUserId().equals(group.getPersonalGroupUser().getUserId()))) {
 				    det.creatorId = group.getCreator().getUserId();			    	
