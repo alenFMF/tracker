@@ -182,6 +182,17 @@ public class GroupEngine {
 	    	   									(asgn.getUntilDate() == null || asgn.getUntilDate().compareTo(time) >= 0)));
 	}
 
+	/**
+	 * Returns intersection of admin intervals (when admin is allowed to be admin) and user intervals (when user allows to be tracked).
+	 * If adminId is null it returns user intervals.
+	 * @param sk - session keeper.
+	 * @param userId - must be not null.
+	 * @param groupId - must be not null (group for which we are calculating intersection of intervals).
+	 * @param adminId - not mandatory (if we want to find out when an admin can see a certain user in a group).
+	 * @param fromDate - fromDate.
+	 * @param untilDate - untilDate.
+	 * @return list of intervals.
+	 */
 	private static List<Pair<Date, Date>> calculateIntervals(SessionKeeper sk, String userId, String groupId, String adminId, Date fromDate, Date untilDate) {
 		if (userId == null || groupId == null) return null;
 		Criteria userC = sk.createCriteria(UserGroupAssignment.class);
@@ -207,10 +218,37 @@ public class GroupEngine {
 			adminC.addOrder(Order.desc("timestamp"));
 			List<UserGroupAssignment> adminAssignments = adminC.list();
 			List<Pair<Date, Date>> adminIntervals = getAllowedIntervals(adminAssignments, fromDate, untilDate);
+
+			List<Pair<Date, Date>> intervalsIntersection = new ArrayList<>();
+			Integer userIndex = 0;
+			Integer adminIndex = 0;
+			while (userIndex < userIntervals.size() && adminIndex < adminIntervals.size()) {
+			    Pair<Date, Date> userI = userIntervals.get(userIndex);
+                Pair<Date, Date> adminI = adminIntervals.get(adminIndex);
+                if (userI.getLeft().before(adminI.getRight()) && adminI.getLeft().before(userI.getRight())) {
+                	Date a = userI.getLeft().after(adminI.getLeft()) ? userI.getLeft() : adminI.getLeft();
+                	Date b = userI.getRight().before(adminI.getRight()) ? userI.getRight() : adminI.getRight();
+                	intervalsIntersection.add(Pair.of(a , b));
+				}
+				userIndex = userI.getRight().after(adminI.getRight()) ? userIndex : userIndex + 1;
+				adminIndex = adminI.getRight().after(userI.getRight()) ? adminIndex : adminIndex + 1;
+				if (userI.getRight().equals(adminI.getRight())) {
+					userIndex++;
+					adminIndex++;
+				}
+            }
+			return intervalsIntersection;
 		}
-		return null;
+		return userIntervals;
 	}
 
+	/**
+	 * Calculates allowed intervals from assignments.
+	 * @param assignments - list of assignments (ALLOWS and DENIES) from which the intervals are calculated.
+	 * @param fromDate - fromDate.
+	 * @param untilDate - untilDate.
+	 * @return list of intervals.
+	 */
 	private static List<Pair<Date, Date>> getAllowedIntervals(List<UserGroupAssignment> assignments, Date fromDate, Date untilDate) {
 		List<Pair<Date, Date>> intervals = new ArrayList<>();
 		for (UserGroupAssignment assignment : assignments) {
