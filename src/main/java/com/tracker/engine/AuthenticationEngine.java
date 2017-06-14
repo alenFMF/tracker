@@ -338,7 +338,7 @@ public class AuthenticationEngine {
 			if((req.device == null && req.notificationToken != null) || (req.device != null && req.notificationToken == null)) {
 				return new APIAuthenticateResponse("MISSING_DEVICE_OR_TOKEN", "Missing exactly one of device or notification token.");
 			}
-			if(req.device != null) {					
+			if(req.device != null && req.forcePrimary != null && req.forcePrimary) {					
 				status = NotificationEngine.registerPrimaryDevice(sk, user, req.device, req.notificationToken);
 			} 
 			if(status.equals("OK")) {
