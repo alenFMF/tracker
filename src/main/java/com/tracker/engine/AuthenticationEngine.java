@@ -251,6 +251,14 @@ public class AuthenticationEngine {
 		} 	
 		return new APIUserUpdateResponse("SET_ADMIN_DENIED", "Admin status can be changed by admin only.");		
 	}
+
+	private APIUserUpdateResponse processMonitored(TrackingUser user, TrackingUser tokenUser, boolean monitored) {
+		if(tokenUser != null && tokenUser.getAdmin()) {
+			user.setMonitored(monitored);
+			return null;
+		} 	
+		return new APIUserUpdateResponse("SET_MONITORED_DENIED", "Monitored status can be changed by admin only.");		
+	}
 	
 	public TrackingUser getUser(SessionKeeper sk, String userId, String provider) {
 		if(userId == null) return null;
@@ -272,34 +280,42 @@ public class AuthenticationEngine {
 	
 	public APIUserUpdateResponse update(APIUserUpdate req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
-			TrackingUser user = getUser(sk, req.userId, null); // not possible update for a provider
-			if(user == null) {		
-				return new APIUserUpdateResponse("NO_SUCH_USER", "");
-			}		
+			TrackingUser user = getUser(sk, req.userId, req.provider); // not possible update for a provider
 			
 			TrackingUser tokenUser = getTokenUser(sk, req.token);
+			if(user == null) {
+				if(req.userId == null) {
+					user = tokenUser;
+				} else {
+					return new APIUserUpdateResponse("NO_SUCH_USER", "");
+				}
+			}		
+
 			
-			//password change
-			APIUserUpdateResponse resp = processPasswordChange(user, tokenUser, req.oldPassword, req.newPassword);
-			if(resp != null) return resp;
+			APIUserUpdateResponse resp = null;
 			
+			if(user.getProvider() == null) {
+				//password change
+				resp = processPasswordChange(user, tokenUser, req.oldPassword, req.newPassword);
+				if(resp != null) return resp;
+			}
 			resp = processSecretChange(sk, user, tokenUser, req.resetSecret);
 			if(resp != null) return resp;
 			
 			
-			// admin change
-			if(req.makeAdmin != null) {
-				resp = processMakeAdmin(user, tokenUser, req.makeAdmin);
-				if(resp != null) return resp;
+			if(user.getProvider() == null) {
+				// admin change
+				if(req.makeAdmin != null) {
+					resp = processMakeAdmin(user, tokenUser, req.makeAdmin);
+					if(resp != null) return resp;
+				}
 			}
 			
+			if(req.monitored != null) {
+				resp = processMonitored(user, tokenUser, req.monitored);
+				if(resp != null) return resp;
+			}
 			APIUserUpdateResponse res = new APIUserUpdateResponse();
-//			if(req.setProvider != null) {
-//				res.token = tokens.authenticateUserWithTokenFromProvider(req.userId, authObj.getToken(), req.setProvider);
-//				if(res.token == null) {
-//					return new APIUserUpdateResponse("PROVIDER_AUTH_ERROR", "Duplicate auth token from provider. Please try again.");
-//				}
-//			}
 			sk.saveOrUpdate(user);	
 			sk.commit();
 			return res;
@@ -345,12 +361,16 @@ public class AuthenticationEngine {
 				sk.commit();				
 				APIAuthenticateResponse res = new APIAuthenticateResponse(token);
 				res.primaryDeviceOverride = false;
+				res.monitored = user.getMonitored();
+				res.postingSecret = user.getPostingSecret();
 				return res;
 			}
 			if(status.equals("OK_OVERRIDE")) {
 				sk.commit();
 				APIAuthenticateResponse res = new APIAuthenticateResponse(token);
 				res.primaryDeviceOverride = true;
+				res.monitored = user.getMonitored();
+				res.postingSecret = user.getPostingSecret();
 				return res;
 			} 
 			return new APIAuthenticateResponse(status, "");
@@ -376,6 +396,7 @@ public class AuthenticationEngine {
 			resp.isAdmin = user.getAdmin();
 			resp.postingSecret = tokenUser.getUserId().equals(user.getUserId()) ? user.getPostingSecret() : null;
 			resp.provider = user.getProvider();
+			resp.monitored = user.getMonitored();
 //			resp.adminGroups = null;
 //			resp.userGroups = null;
 			resp.personalGroup = user.getPersonalGroup().getGroupId();

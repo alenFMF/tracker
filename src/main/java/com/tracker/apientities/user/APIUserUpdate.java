@@ -6,8 +6,10 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 public class APIUserUpdate {
 	public String token;
 	public String userId;
+	public String provider;
 	public String oldPassword;
 	public String newPassword;
 	public Boolean resetSecret;
 	public Boolean makeAdmin;
+	public Boolean monitored;
 }

@@ -28,6 +28,8 @@ public class TrackingUser extends BaseEntity {
 	
 	public String provider;
 	
+	public Boolean monitored;
+	
 	@OneToMany(mappedBy="user")
 	private List<UserGroupAssignment> userGroupAssignments;
 	
@@ -151,6 +153,14 @@ public class TrackingUser extends BaseEntity {
 
 	public void setPrimaryNotificationDevice(NotificationRegistration primaryNotificationDevice) {
 		this.primaryNotificationDevice = primaryNotificationDevice;
+	}
+
+	public Boolean getMonitored() {
+		return monitored;
+	}
+
+	public void setMonitored(Boolean monitored) {
+		this.monitored = monitored;
 	} 
 	
 }

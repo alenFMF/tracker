@@ -5,6 +5,8 @@ import com.tracker.apientities.APIBaseResponse;
 public class APIAuthenticateResponse extends APIBaseResponse {
 	public String token;
 	public Boolean primaryDeviceOverride;
+	public Boolean monitored;
+	public String postingSecret;
 	
 	public APIAuthenticateResponse(String token) {
 		this.token = token;
