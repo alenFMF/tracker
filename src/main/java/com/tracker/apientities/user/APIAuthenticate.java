@@ -7,5 +7,6 @@ public class APIAuthenticate {
 	public String provider;
 	public String password;
 	public APIDevice device;
-	public String notificationToken;	
+	public String notificationToken;
+	public Boolean forcePrimary;
 }
