@@ -17,6 +17,12 @@ import com.tracker.apientities.notifications.APIRegistredDevice;
 import com.tracker.apientities.user.APIAuthProvidersResponse;
 import com.tracker.apientities.user.APIAuthenticate;
 import com.tracker.apientities.user.APIAuthenticateResponse;
+import com.tracker.apientities.user.APIProperty;
+import com.tracker.apientities.user.APIPropertyList;
+import com.tracker.apientities.user.APIPropertyListResponse;
+import com.tracker.apientities.user.APIPropertySet;
+import com.tracker.apientities.user.APIPropertySetResponse;
+import com.tracker.apientities.user.APIPropertyStatus;
 import com.tracker.apientities.user.APIUserDetail;
 import com.tracker.apientities.user.APIUserProfile;
 import com.tracker.apientities.user.APIUserProfileResponse;
@@ -34,6 +40,7 @@ import com.tracker.db.AppConfiguration;
 import com.tracker.db.DeviceRecord;
 import com.tracker.db.NotificationRegistration;
 import com.tracker.db.OrganizationGroup;
+import com.tracker.db.TrackingProperty;
 import com.tracker.db.TrackingUser;
 import com.tracker.db.UserGroupAssignment;
 import com.tracker.utils.SessionKeeper;
@@ -459,5 +466,112 @@ public class AuthenticationEngine {
 
 	public APIAuthProvidersResponse listAuthProviders() {
 		return new APIAuthProvidersResponse(authFactory.listProviders());
+	}
+
+	private boolean checkConversion(String type, String value) {
+		if(type == null || value == null) return false;
+		switch(type) {
+			case "Integer":
+				try {
+					Integer.parseInt(value);
+					return true;
+				} catch(Exception e) {
+					return false;
+				}
+			case "Double":
+				try {
+					Double.parseDouble(value);
+					return true;
+				} catch(Exception e) {
+					return false;
+				}
+			case "Boolean":
+				try {
+					Boolean.parseBoolean(value);
+					return true;
+				} catch(Exception e) {
+					return false;
+				}
+			case "String":
+				return true;
+			default:
+				return false; // something strange provided as a type
+		}		
+	}
+	
+	public APIPropertySetResponse propertySet(APIPropertySet req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
+			TrackingUser tokenUser = getTokenUser(sk, req.token);
+			if(tokenUser == null) {
+				return new APIPropertySetResponse("AUTH_ERROR", "Invalid token.");
+			}
+			if(!tokenUser.getAdmin()) {
+				return new APIPropertySetResponse("AUTH_ERROR", "Properties can be set by admins only.");
+			}
+			List<APIPropertyStatus> statuses = new LinkedList<APIPropertyStatus>();
+			for(APIProperty prop: req.properties) {
+				if(!checkConversion(prop.type, prop.value)) {
+					statuses.add(new APIPropertyStatus(prop.key, "CONVERSION_FAILED", ""));
+					continue;
+				}
+				Criteria c = sk.createCriteria(TrackingProperty.class)
+											.add(Restrictions.eq("key", prop.key));
+				if(req.provider != null) {
+					c.add(Restrictions.eq("provider", req.provider));
+				} else {
+					c.add(Restrictions.isNull("provider"));
+				}
+				TrackingProperty aProp = (TrackingProperty)c.uniqueResult();
+				if(aProp == null) {
+					aProp = new TrackingProperty();
+					aProp.setKey(prop.key);
+					aProp.setType(prop.type);
+					aProp.setValue(prop.value);
+					aProp.setProvider(req.provider);
+					sk.save(aProp);
+				} else {
+					aProp.setType(prop.type);
+					aProp.setValue(prop.value);
+					sk.saveOrUpdate(aProp);
+				}
+				statuses.add(new APIPropertyStatus(prop.key, "OK", ""));
+			}
+			sk.commit();
+			return new APIPropertySetResponse(statuses);
+		}		
+	}
+
+	public APIPropertyListResponse propertyList(APIPropertyList req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
+			TrackingUser tokenUser = getTokenUser(sk, req.token);
+			if(tokenUser == null) {
+				return new APIPropertyListResponse("AUTH_ERROR", "Invalid token.");
+			}
+			Criteria c = sk.createCriteria(TrackingProperty.class);
+			String provider = null;
+			if(tokenUser.getAdmin()) {
+				provider = req.provider;
+			} else {
+				provider = tokenUser.getProvider();
+				if((provider == null && req.provider != null) ||
+				   (provider != null && req.provider != null && !provider.equals(req.provider))) {
+					return new APIPropertyListResponse("WRONG_PROVIDER", "Non-admin can check properties for his provider only.");
+				}
+			}
+			if(provider != null) {
+				c.add(Restrictions.eq("provider", provider));
+			} else {
+				c.add(Restrictions.isNull("provider"));
+			}
+			@SuppressWarnings("unchecked")
+			List<TrackingProperty> properties = c.list();
+			List<APIProperty> outProps = new LinkedList<APIProperty>();
+			for(TrackingProperty prop: properties) {
+				outProps.add(new APIProperty(prop));
+			}
+			return new APIPropertyListResponse(outProps, provider);			
+		}
+
+		
 	}
 }

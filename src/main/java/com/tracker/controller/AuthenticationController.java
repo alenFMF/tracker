@@ -15,6 +15,10 @@ import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.user.APIAuthProvidersResponse;
 import com.tracker.apientities.user.APIAuthenticate;
 import com.tracker.apientities.user.APIAuthenticateResponse;
+import com.tracker.apientities.user.APIPropertyList;
+import com.tracker.apientities.user.APIPropertyListResponse;
+import com.tracker.apientities.user.APIPropertySet;
+import com.tracker.apientities.user.APIPropertySetResponse;
 import com.tracker.apientities.user.APIUserProfile;
 import com.tracker.apientities.user.APIUserProfileResponse;
 import com.tracker.apientities.user.APIUserRegister;
@@ -80,6 +84,20 @@ public class AuthenticationController {
 		inputLogger(req);
 		return new ResponseEntity<APIAuthenticateResponse>(authEngine.authenticate(req), HttpStatus.OK);
 	}		
+	
+	@RequestMapping(value = "property/set", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIPropertySetResponse> propertySet(@RequestBody APIPropertySet req) {
+		inputLogger(req);
+		return new ResponseEntity<APIPropertySetResponse>(authEngine.propertySet(req), HttpStatus.OK);
+	}	
+
+	@RequestMapping(value = "property/list", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIPropertyListResponse> propertyList(@RequestBody APIPropertyList req) {
+		inputLogger(req);
+		return new ResponseEntity<APIPropertyListResponse>(authEngine.propertyList(req), HttpStatus.OK);
+	}	
 	
 	@RequestMapping(value = "list", method = RequestMethod.POST)
 	@ApiOperation(value = "List users.", notes = "System admins can list users together with their system roles (USER, ADMIN).")
