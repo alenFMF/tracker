@@ -5,7 +5,7 @@ import javax.persistence.Entity;
 @Entity
 public class TrackingProperty extends BaseEntity {
 	public String provider;
-	public String key;
+	public String dataKey;
 	public String dataType;
 	public String dataValue;
 	
@@ -16,10 +16,10 @@ public class TrackingProperty extends BaseEntity {
 		this.provider = provider;
 	}
 	public String getKey() {
-		return key;
+		return dataKey;
 	}
 	public void setKey(String key) {
-		this.key = key;
+		this.dataKey = key;
 	}
 	public String getType() {
 		return dataType;
