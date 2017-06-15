@@ -7,7 +7,7 @@ public class TrackingProperty extends BaseEntity {
 	public String provider;
 	public String key;
 	public String dataType;
-	public String value;
+	public String dataValue;
 	
 	public String getProvider() {
 		return provider;
@@ -28,10 +28,10 @@ public class TrackingProperty extends BaseEntity {
 		this.dataType = type;
 	}
 	public String getValue() {
-		return value;
+		return dataValue;
 	}
 	public void setValue(String value) {
-		this.value = value;
+		this.dataValue = value;
 	}
 	
 	public TrackingProperty() {

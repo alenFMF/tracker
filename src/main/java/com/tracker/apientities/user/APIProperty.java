@@ -11,6 +11,6 @@ public class APIProperty {
 	public APIProperty(TrackingProperty prop) {
 		this.key = prop.key;
 		this.type = prop.dataType;
-		this.value = prop.value;
+		this.value = prop.dataValue;
 	}
 }
