@@ -111,14 +111,13 @@ public class TrackerEngine {
 					
 					if(drec == null) {
 						drec = new DeviceRecord();
+						drec.setUuid(req.device.uuid);
+						drec.setManufacturer(req.device.manufacturer);
+						drec.setModel(req.device.model);
+						drec.setPlatform(req.device.platform);		
+						sk.save(drec);
 					}
-					drec.setUuid(req.device.uuid);
-					drec.setManufacturer(req.device.manufacturer);
-					drec.setModel(req.device.model);
-					drec.setPlatform(req.device.platform);
-					sk.saveOrUpdate(drec);
-					r.setDevice(drec);
-					
+					r.setDevice(drec);					
 				}
 				sk.save(r);
 			}

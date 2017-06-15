@@ -6,7 +6,7 @@ import javax.persistence.Entity;
 public class TrackingProperty extends BaseEntity {
 	public String provider;
 	public String key;
-	public String type;
+	public String dataType;
 	public String value;
 	
 	public String getProvider() {
@@ -22,10 +22,10 @@ public class TrackingProperty extends BaseEntity {
 		this.key = key;
 	}
 	public String getType() {
-		return type;
+		return dataType;
 	}
 	public void setType(String type) {
-		this.type = type;
+		this.dataType = type;
 	}
 	public String getValue() {
 		return value;
