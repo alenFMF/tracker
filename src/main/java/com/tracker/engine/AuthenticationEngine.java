@@ -149,7 +149,8 @@ public class AuthenticationEngine {
 			TrackingUser user = getUser(sk, req.userId, null); 
 			if(user == null) {
 				UserGeneration ugen = generateUser(sk, req.userId, req.password, null);
-				if(ugen.status == "OK") {					
+				if(ugen.status == "OK") {	
+					sk.commit();
 					APIUserRegisterResponse res =  new APIUserRegisterResponse();
 					res.token = tokens.authenticate(sk, ugen.user, req.password, passwordEncoder, null, null);
 					return res;
