@@ -1,5 +1,7 @@
 package com.tracker.controller;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -13,6 +15,7 @@ import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.apientities.APIBaseResponse;
+import com.tracker.apientities.tracks.APICoords2;
 import com.tracker.apientities.tracks.APITrackQuery;
 import com.tracker.apientities.tracks.APITrackQueryResponse;
 import com.tracker.apientities.tracks.APITrackerPost;
@@ -48,6 +51,22 @@ public class TrackerController {
 		inputLogger(req);
 		try {
 			APIBaseResponse res = testEngine.handleTrackingPost(userSecret, req);
+			if(res != null) {
+				return new ResponseEntity<APIBaseResponse>(res, HttpStatus.OK);
+			}
+			return new ResponseEntity<APIBaseResponse>(new APIBaseResponse("SECRET_INVALID", ""), HttpStatus.BAD_REQUEST);					
+		} catch (Exception e) {
+			return new ResponseEntity<APIBaseResponse>(HttpStatus.BAD_REQUEST);
+		}
+	}	
+
+	@RequestMapping(value = "shortPost/{userSecret:.+}", method = RequestMethod.POST)
+	@ApiOperation(value = "Post sample(s).", notes = "Route for posting GPS samples compatible with react-native-background-geolocation.")
+	@ResponseBody
+	public ResponseEntity<APIBaseResponse> shortPost(@PathVariable("userSecret") String userSecret, @RequestBody List<APICoords2> req) {
+		inputLogger(req);
+		try {
+			APIBaseResponse res = testEngine.handleShortPost(userSecret, req);
 			if(res != null) {
 				return new ResponseEntity<APIBaseResponse>(res, HttpStatus.OK);
 			}
