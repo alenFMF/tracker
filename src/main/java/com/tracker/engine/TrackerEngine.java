@@ -23,6 +23,7 @@ import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
 import com.tracker.apientities.notifications.APIDeviceQuery;
 import com.tracker.apientities.notifications.APIDeviceResponse;
+import com.tracker.apientities.tracks.APICoords2;
 import com.tracker.apientities.tracks.APIGPSLocation;
 import com.tracker.apientities.tracks.APITrackDetail;
 import com.tracker.apientities.tracks.APITrackQuery;
@@ -34,6 +35,7 @@ import com.tracker.db.AltitudeRecord;
 import com.tracker.db.BatteryRecord;
 import com.tracker.db.DeviceRecord;
 import com.tracker.db.GPSRecord;
+import com.tracker.db.NotificationRegistration;
 import com.tracker.db.TestEntity;
 import com.tracker.db.TrackingUser;
 import com.tracker.utils.SessionKeeper;
@@ -222,5 +224,38 @@ public class TrackerEngine {
 		public int stopDuration; // minutes
 		public String deviceId;
 		public String userId;
+	}
+
+
+	public APIBaseResponse handleShortPost(String userSecret, List<APICoords2> req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
+			TrackingUser user = (TrackingUser)sk.createCriteria(TrackingUser.class).add(Restrictions.eq("postingSecret", userSecret)).uniqueResult();
+			if(user == null) return null;
+			NotificationRegistration regis = user.getPrimaryNotificationDevice();
+			if(regis == null) return null;
+			DeviceRecord drec = regis.getDevice();
+			if(drec == null) return null;
+			
+			for (APICoords2 loc : req) {
+				GPSRecord r = new GPSRecord();
+				r.setUser(user);
+				r.setTimestamp(loc.time);
+				r.setSpeed(loc.speed);
+				r.setLongitude(loc.lon);
+				r.setLatitude(loc.lat);
+				r.setHeading(loc.head);
+				if(loc.alt != null) {
+					AltitudeRecord ar = new AltitudeRecord();
+					ar.setAltitude(loc.alt);
+					r.setAltitude(ar);
+					sk.save(ar);
+				}
+				
+				r.setDevice(drec);					
+				sk.save(r);
+			}
+			sk.commit();			
+		}
+		return new APIBaseResponse();
 	}
 }
