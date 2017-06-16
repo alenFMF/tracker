@@ -821,9 +821,9 @@ public class GroupEngine {
 				return new APIBaseResponse("AUTH_ERROR", "Only system admin can make migration updates.");
 			}
 			
-			boolean status = migration1(sk);
-			status = migration2(sk);
-			status = migration3(sk);
+//			boolean status = migration1(sk);
+			boolean status = migration2(sk);
+//			status = migration3(sk);
 			if(status) {
 				return new APIBaseResponse();
 			} else {
