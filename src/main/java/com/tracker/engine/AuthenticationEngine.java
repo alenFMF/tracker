@@ -151,7 +151,7 @@ public class AuthenticationEngine {
 				UserGeneration ugen = generateUser(sk, req.userId, req.password, null);
 				if(ugen.status == "OK") {					
 					APIUserRegisterResponse res =  new APIUserRegisterResponse();
-					res.token = tokens.authenticate(sk, user, req.password, passwordEncoder, null, null);
+					res.token = tokens.authenticate(sk, ugen.user, req.password, passwordEncoder, null, null);
 					return res;
 				}
 				return new APIUserRegisterResponse("ERROR", "");
