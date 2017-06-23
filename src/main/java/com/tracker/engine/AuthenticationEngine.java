@@ -516,7 +516,7 @@ public class AuthenticationEngine {
 					continue;
 				}
 				Criteria c = sk.createCriteria(TrackingProperty.class)
-											.add(Restrictions.eq("key", prop.key));
+											.add(Restrictions.eq("dataKey", prop.key));
 				if(req.provider != null) {
 					c.add(Restrictions.eq("provider", req.provider));
 				} else {
