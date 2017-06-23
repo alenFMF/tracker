@@ -17,6 +17,8 @@ import com.tracker.apientities.notifications.APIRegistredDevice;
 import com.tracker.apientities.user.APIAuthProvidersResponse;
 import com.tracker.apientities.user.APIAuthenticate;
 import com.tracker.apientities.user.APIAuthenticateResponse;
+import com.tracker.apientities.user.APIPropertiesDelete;
+import com.tracker.apientities.user.APIPropertiesDeleteResponse;
 import com.tracker.apientities.user.APIProperty;
 import com.tracker.apientities.user.APIPropertyList;
 import com.tracker.apientities.user.APIPropertyListResponse;
@@ -575,4 +577,36 @@ public class AuthenticationEngine {
 
 		
 	}
+	
+	public APIPropertiesDeleteResponse propertiesDelete(APIPropertiesDelete req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
+			TrackingUser tokenUser = getTokenUser(sk, req.token);
+			if(tokenUser == null) {
+				return new APIPropertiesDeleteResponse("AUTH_ERROR", "Invalid token.");
+			}
+			if(!tokenUser.getAdmin()) {
+				return new APIPropertiesDeleteResponse("AUTH_ERROR", "Properties can be set by admins only.");
+			}
+			List<APIPropertyStatus> statuses = new LinkedList<APIPropertyStatus>();
+			for(String propKey: req.propertyKeys) {
+				Criteria c = sk.createCriteria(TrackingProperty.class)
+											.add(Restrictions.eq("dataKey", propKey));
+				if(req.provider != null) {
+					c.add(Restrictions.eq("provider", req.provider));
+				} else {
+					c.add(Restrictions.isNull("provider"));
+				}
+				TrackingProperty aProp = (TrackingProperty)c.uniqueResult();
+				if(aProp == null) {
+					statuses.add(new APIPropertyStatus(propKey, "MISSING", ""));
+				} else {
+					sk.delete(aProp);
+					statuses.add(new APIPropertyStatus(propKey, "OK", ""));
+				}
+			}
+			sk.commit();
+			return new APIPropertiesDeleteResponse(statuses);
+		}		
+	}
+	
 }
