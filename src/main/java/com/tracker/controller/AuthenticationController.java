@@ -15,6 +15,8 @@ import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.user.APIAuthProvidersResponse;
 import com.tracker.apientities.user.APIAuthenticate;
 import com.tracker.apientities.user.APIAuthenticateResponse;
+import com.tracker.apientities.user.APIPropertiesDelete;
+import com.tracker.apientities.user.APIPropertiesDeleteResponse;
 import com.tracker.apientities.user.APIPropertyList;
 import com.tracker.apientities.user.APIPropertyListResponse;
 import com.tracker.apientities.user.APIPropertySet;
@@ -92,6 +94,13 @@ public class AuthenticationController {
 		return new ResponseEntity<APIPropertySetResponse>(authEngine.propertySet(req), HttpStatus.OK);
 	}	
 
+	@RequestMapping(value = "property/delete", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIPropertiesDeleteResponse> propertiesDelete(@RequestBody APIPropertiesDelete req) {
+		inputLogger(req);
+		return new ResponseEntity<APIPropertiesDeleteResponse>(authEngine.propertiesDelete(req), HttpStatus.OK);
+	}	
+	
 	@RequestMapping(value = "property/list", method = RequestMethod.POST)
 	@ResponseBody
 	public ResponseEntity<APIPropertyListResponse> propertyList(@RequestBody APIPropertyList req) {
