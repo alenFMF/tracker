@@ -154,11 +154,11 @@ public class TrackerEngine {
 //			if (req.deviceIds != null && !req.deviceIds.isEmpty()) {
 //				c.add(Restrictions.in("Device.uuid", req.deviceIds));
 //			} 
-//			if (req.userIds != null && !req.userIds.isEmpty()) {
-//				c.createAlias("user", "User");
-//				c.add(Restrictions.in("User.userId", req.userIds));
+			if (req.userIds != null && !req.userIds.isEmpty()) {
+				c.createAlias("user", "User");
+				c.add(Restrictions.in("User.userId", req.userIds));
 //				criteriaCount++;
-//			}
+			}
 
 //			if (req.organizationGroup != null) {
 //				c.createAlias("user", "User");
@@ -244,6 +244,7 @@ public class TrackerEngine {
 				r.setLongitude(loc.lon);
 				r.setLatitude(loc.lat);
 				r.setHeading(loc.head);
+				r.setAccuracy(loc.accur);
 				if(loc.alt != null) {
 					AltitudeRecord ar = new AltitudeRecord();
 					ar.setAltitude(loc.alt);
