@@ -17,6 +17,8 @@ import com.tracker.apientities.notifications.APIRegistredDevice;
 import com.tracker.apientities.user.APIAuthProvidersResponse;
 import com.tracker.apientities.user.APIAuthenticate;
 import com.tracker.apientities.user.APIAuthenticateResponse;
+import com.tracker.apientities.user.APIOneTimeToken;
+import com.tracker.apientities.user.APIOneTimeTokenResponse;
 import com.tracker.apientities.user.APIPropertiesDelete;
 import com.tracker.apientities.user.APIPropertiesDeleteResponse;
 import com.tracker.apientities.user.APIProperty;
@@ -338,11 +340,26 @@ public class AuthenticationEngine {
 	
 	public APIAuthenticateResponse authenticate(APIAuthenticate req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
-			TrackingUser user = getUser(sk, req.userId, req.provider);
+			TrackingUser user = null;
 			String token = null;
+			if(req.oneTimeToken != null) {
+				UserAuthentication uauth = tokens.verifyOneTimeTokenAndClear(req.oneTimeToken);
+				if(uauth == null) {
+					return new APIAuthenticateResponse("AUTH_ERROR", "Wrong one time auth token.");
+				}
+				user = getUser(sk, uauth.getUserId(), uauth.getProvider());
+				if(user == null) {
+					return new APIAuthenticateResponse("AUTH_ERROR", "Cannot find a user for one time auth token.");
+				}	
+				token = uauth.getToken();
+			} else {
+				user = getUser(sk, req.userId, req.provider);
+			}
 			String status = "OK";
 			if(user != null) { // existing user
-				token = tokens.authenticate(sk, user, req.password, passwordEncoder, authFactory, req.provider);
+				if(token == null) {
+					token = tokens.authenticate(sk, user, req.password, passwordEncoder, authFactory, req.provider);
+				}
 			} else {
 					if(req.provider == null) {
 						return new APIAuthenticateResponse("AUTH_ERROR", "User does not exist.");
@@ -609,4 +626,13 @@ public class AuthenticationEngine {
 		}		
 	}
 	
+	public APIOneTimeTokenResponse getOneTimeAuthToken(APIOneTimeToken req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
+			String oneTimeToken = tokens.getOneTimeToken(req.token);
+			if(oneTimeToken == null) {
+				return new APIOneTimeTokenResponse("AUTH_ERROR", "Wrong token.");
+			}
+			return new APIOneTimeTokenResponse(oneTimeToken);
+		}		
+	}	
 }

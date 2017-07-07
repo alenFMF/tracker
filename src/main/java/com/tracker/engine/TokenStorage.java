@@ -14,6 +14,7 @@ import java.security.SecureRandom;
 public class TokenStorage {
 	private Map<String, UserAuthentication> tokenToAuth = new ConcurrentHashMap<>();	
 	private Map<String, ResetToken> passwordResetTokens = new ConcurrentHashMap<>();
+	private Map<String, UserAuthentication> oneTimeTokens = new ConcurrentHashMap<>();
 	private SecureRandom generator;
 	private int tokenLength = 24;
 	
@@ -101,7 +102,21 @@ public class TokenStorage {
 		return token;
 	}
 	
-
+	public String getOneTimeToken(String authToken) {
+		UserAuthentication auth = tokenToAuth.get(authToken);
+		if(auth == null) return null;
+		String oneTimeToken = generateToken();
+		oneTimeTokens.put(oneTimeToken, auth);
+		return oneTimeToken;
+	}
+	
+	public UserAuthentication verifyOneTimeTokenAndClear(String token) {
+		UserAuthentication auth =  oneTimeTokens.get(token);
+		if(auth == null) return null;
+		oneTimeTokens.remove(token);
+		return auth;
+	}
+	
 	public String userIdForResetToken(String token) {	
 		ResetToken rt = passwordResetTokens.get(token);
 		if(rt == null) return null;

@@ -9,4 +9,5 @@ public class APIAuthenticate {
 	public APIDevice device;
 	public String notificationToken;
 	public Boolean forcePrimary;
+	public String oneTimeToken;
 }
