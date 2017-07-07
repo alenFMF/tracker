@@ -15,6 +15,8 @@ import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.user.APIAuthProvidersResponse;
 import com.tracker.apientities.user.APIAuthenticate;
 import com.tracker.apientities.user.APIAuthenticateResponse;
+import com.tracker.apientities.user.APIOneTimeToken;
+import com.tracker.apientities.user.APIOneTimeTokenResponse;
 import com.tracker.apientities.user.APIPropertiesDelete;
 import com.tracker.apientities.user.APIPropertiesDeleteResponse;
 import com.tracker.apientities.user.APIPropertyList;
@@ -86,6 +88,13 @@ public class AuthenticationController {
 		inputLogger(req);
 		return new ResponseEntity<APIAuthenticateResponse>(authEngine.authenticate(req), HttpStatus.OK);
 	}		
+	
+	@RequestMapping(value = "oneTimeToken", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIOneTimeTokenResponse> oneTimeAuthenticateToken(@RequestBody APIOneTimeToken req) {
+		inputLogger(req);
+		return new ResponseEntity<APIOneTimeTokenResponse>(authEngine.getOneTimeAuthToken(req), HttpStatus.OK);
+	}	
 	
 	@RequestMapping(value = "property/set", method = RequestMethod.POST)
 	@ResponseBody

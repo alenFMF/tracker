@@ -6,9 +6,12 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Properties;
 import java.util.Set;
 import org.apache.commons.lang3.tuple.Pair;
 import org.hibernate.criterion.Restrictions;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Component;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.client.RestTemplate;
 
@@ -20,9 +23,11 @@ import com.tracker.db.TrackingUser;
 import com.tracker.db.UserGroupAssignment;
 import com.tracker.utils.SessionKeeper;
 
+@Component
 public class GoOptiAuthProvider implements IAuthProvider {
 	
-	private String service = "https://test.goopti.com/goopti-services/authentication/signin";
+	@Value("#{generalProperties.gooptiAuthURL}")
+	private String service;
 	
 	@Override
 	public AuthenticationObject authenticate(String username, String password) {

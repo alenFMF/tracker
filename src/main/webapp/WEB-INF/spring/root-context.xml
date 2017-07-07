@@ -36,6 +36,7 @@
 	<bean id="generalProperties" class="org.springframework.beans.factory.config.PropertiesFactoryBean">
         <property name="locations">
             <list>
+            	<value>classpath*:general.properties</value>
                 <value>classpath*:my.general.properties</value>
             </list>
         </property>

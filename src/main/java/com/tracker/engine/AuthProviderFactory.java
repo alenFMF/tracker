@@ -5,17 +5,25 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 
+import javax.annotation.PostConstruct;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 @Component
 public class AuthProviderFactory {
 	private HashMap<String, IAuthProvider> keyToProvider;
 	
-	public AuthProviderFactory() {
+	@Autowired
+	private GoOptiAuthProvider gooptiProvider;
+	
+	
+	@PostConstruct
+	public void postConstuct() {
 		keyToProvider = new HashMap<String, IAuthProvider>();
-		register(new GoOptiAuthProvider());
+		register(gooptiProvider);
 		// register other providers.
-	}
+	}	
 	
 	public IAuthProvider getProvider(String key) {
 		return keyToProvider.get(key);
