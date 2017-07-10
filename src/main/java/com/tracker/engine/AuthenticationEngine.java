@@ -390,6 +390,7 @@ public class AuthenticationEngine {
 				res.primaryDeviceOverride = false;
 				res.monitored = user.getMonitored();
 				res.postingSecret = user.getPostingSecret();
+				res.userId = user.getUserId();
 				return res;
 			}
 			if(status.equals("OK_OVERRIDE")) {
@@ -398,6 +399,7 @@ public class AuthenticationEngine {
 				res.primaryDeviceOverride = true;
 				res.monitored = user.getMonitored();
 				res.postingSecret = user.getPostingSecret();
+				res.userId = user.getUserId();
 				return res;
 			} 
 			return new APIAuthenticateResponse(status, "");
