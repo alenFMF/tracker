@@ -370,6 +370,7 @@ public class AuthenticationEngine {
 					}
 					// generate new provider user
 					UserGeneration ugen = generateUser(sk, req.userId, req.password, req.provider);
+					user = ugen.user;
 					if(!ugen.status.equals("OK")) { 
 						return new APIAuthenticateResponse(ugen.status, "");
 					}
