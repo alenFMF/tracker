@@ -50,16 +50,18 @@ public class GoOptiAuthProvider implements IAuthProvider {
 			auth.setStatus("OK");
 			auth.setErrorMessage("");
 			List<ProviderGroupRoles> roles = new LinkedList<ProviderGroupRoles>();
-			for(APIGoOptiFranchiseRole role: res.franchiseRoles) {
-				String roleMap = getRoleMapping(role.role);
-				if(roleMap != null) {
-					ProviderGroupRoles pgr = new ProviderGroupRoles();	
-					pgr.roleId = roleMap;
-					pgr.originalRoleDescription = role.role;
-					pgr.groupId = getKey() + "#" + role.franchiseId; 
-					pgr.groupDescripton = role.franchiseName;
-					pgr.parentGroupId = getKey() + "#" + role.parentFranchiseId;
-					roles.add(pgr);
+			if(res.franchiseRoles != null) {
+				for(APIGoOptiFranchiseRole role: res.franchiseRoles) {
+					String roleMap = getRoleMapping(role.role);
+					if(roleMap != null) {
+						ProviderGroupRoles pgr = new ProviderGroupRoles();	
+						pgr.roleId = roleMap;
+						pgr.originalRoleDescription = role.role;
+						pgr.groupId = getKey() + "#" + role.franchiseId; 
+						pgr.groupDescripton = role.franchiseName;
+						pgr.parentGroupId = getKey() + "#" + role.parentFranchiseId;
+						roles.add(pgr);
+					}
 				}
 			}
 			auth.setGroupRoles(roles);
