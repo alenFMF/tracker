@@ -195,6 +195,7 @@ public class TrackerEngine {
 			
 			List<APITrackDetail> trackList = new ArrayList<APITrackDetail>();
 			
+			// TODO: implement interval check and admin propagation
 			for(Map.Entry<Pair<String, String>, List<TableSample>> e: sampleMap.entrySet()) {
 				APITrackDetail det = new APITrackDetail();
 				det.userId = e.getKey().getLeft();

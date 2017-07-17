@@ -458,7 +458,7 @@ public class GroupEngine {
 	 * @param roles - initial roles
 	 * @return
 	 */
-	public static List<GroupRoles> inferParentRoles(List<GroupRoles> roles) {
+	public static List<GroupRoles> inferParentRoles(SessionKeeper sk, List<GroupRoles> roles) {
 		Map<Pair<String, String>, GroupRoles> userAndGroupToRole = new HashMap<Pair<String, String>, GroupRoles>();
 		for(GroupRoles groles: roles) { // initialize map
 			userAndGroupToRole.put(Pair.of(groles.getUser().getUserId(), groles.getGroup().getGroupId()), groles);
@@ -482,6 +482,80 @@ public class GroupEngine {
 		return new LinkedList<GroupRoles>(userAndGroupToRole.values());
 	}
 	
+	
+	/**
+	 * Returns a list of GroupRoles obtained by propagating ADMIN down
+	 * @param roles - initial roles
+	 * @return
+	 */
+	public static List<GroupRoles> inferChildrenRoles(SessionKeeper sk, List<GroupRoles> roles) {
+		if(roles.size() == 0) return new LinkedList<GroupRoles>();
+		String provider = roles.get(0).getUser().getProvider();
+		if(provider == null) {
+			return new LinkedList<GroupRoles>();
+		}
+		@SuppressWarnings("unused")
+		List<OrganizationGroup> providerGroups = sk.createCriteria(OrganizationGroup.class).add(Restrictions.eq("provider", provider)).list();
+		
+		// mapping groupId -> group
+		Map<String, OrganizationGroup> toGroup = new HashMap<String, OrganizationGroup>();
+		for(OrganizationGroup grp: providerGroups) {
+			toGroup.put(grp.getGroupId(), grp);
+		}
+		
+		// mapping groupId -> list of children group id
+		// init
+		Map<String, List<String>> toChildren = new HashMap<String, List<String>>();
+		for(OrganizationGroup grp: providerGroups) {
+			if(!toChildren.containsKey(grp.getGroupId())) {
+				toChildren.put(grp.getGroupId(), new LinkedList<String>());
+			}
+		}
+		// mapping
+		for(OrganizationGroup grp: providerGroups) {
+			OrganizationGroup parent = grp.getParentProviderGroup();
+			if(parent != null) {
+				toChildren.get(parent.getGroupId()).add(grp.getGroupId());
+			}
+		}
+
+		Map<Pair<String, String>, GroupRoles> userAndGroupToRole = new HashMap<Pair<String, String>, GroupRoles>();
+				
+		for(GroupRoles groles: roles) { // initialize map
+			userAndGroupToRole.put(Pair.of(groles.getUser().getUserId(), groles.getGroup().getGroupId()), groles);
+		}
+				
+		for(GroupRoles groles: roles) {
+			if(!groles.isAdminRole()) continue;
+			LinkedList<String> stack = new LinkedList<String>();
+			String groupId = groles.getGroup().getGroupId();
+			stack.push(groupId);
+			// depth first search
+			while(stack.size() > 0) {
+				String tmpGroupId = stack.pop();
+				String userId = groles.getUser().getUserId();
+				OrganizationGroup currentGroup = toGroup.get(tmpGroupId);
+				if(!userAndGroupToRole.containsKey(Pair.of(userId, tmpGroupId))) {
+					userAndGroupToRole.put(Pair.of(userId, tmpGroupId), new GroupRoles(groles.getUser(), currentGroup, false, true));
+				} else {
+					userAndGroupToRole.get(Pair.of(userId, tmpGroupId)).setAdminRole(true);
+				}				
+			}
+//			OrganizationGroup parentGroup = groles.getGroup().getParentProviderGroup();
+//			String userId = groles.getUser().getUserId();
+//			while(parentGroup != null) {
+//				String groupId = parentGroup.getGroupId();
+//				if(!userAndGroupToRole.containsKey(Pair.of(userId, groupId))) {
+//					userAndGroupToRole.put(Pair.of(userId, groupId), new GroupRoles(groles.getUser(), parentGroup, false, true));
+//				} else {
+//					userAndGroupToRole.get(Pair.of(userId, groupId)).setUserRole(true);
+//				}
+//				parentGroup = parentGroup.getParentProviderGroup();				
+//			}
+		}
+		
+		return new LinkedList<GroupRoles>(userAndGroupToRole.values());
+	}	
 	public APIBaseResponse update(APIGroupUpdate req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
 			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
@@ -531,7 +605,7 @@ public class GroupEngine {
 			List<UserGroupAssignment> assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), null, now, false, true, user.getProvider());
 			List<GroupRoles> roles = GroupEngine.rolesForUserInGroupsAtTime(assignments, user, null, now);
 		    if(user.getProvider() != null || user.getAdmin()) {  // add infered USER roles on parent groups.
-		    	roles = GroupEngine.inferParentRoles(roles); 
+		    	roles = GroupEngine.inferParentRoles(sk, roles); 
 		    }						
 			List<APIGroupDetail> groups = new LinkedList<APIGroupDetail>();
 			for (GroupRoles role : roles) {
