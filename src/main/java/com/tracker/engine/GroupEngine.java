@@ -3,9 +3,11 @@ package com.tracker.engine;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 import java.util.Calendar;
 import java.util.ArrayList;
@@ -126,13 +128,23 @@ public class GroupEngine {
 	 */
 	@SuppressWarnings("unchecked")
 	public static List<UserGroupAssignment> usersGroupAssignments(SessionKeeper sk, String userId, String groupId, Date time, Boolean pendingOnly, Boolean accept, String provider) {
+		List<String> userIds = null;
+		if(userId != null) {
+			userIds = new LinkedList<String>();
+			userIds.add(userId);
+		}
+		return usersListGroupAssignments(sk, userIds, groupId, time, pendingOnly, accept, provider);
+	}
+	
+	
+	public static List<UserGroupAssignment> usersListGroupAssignments(SessionKeeper sk, List<String> userIds, String groupId, Date time, Boolean pendingOnly, Boolean accept, String provider) {
 		// if now = true only assignments that are valid at the moment are listed
-		if(userId == null && groupId == null) return null;  
+		if(userIds == null && groupId == null) return null;  
 		Criteria c = sk.createCriteria(UserGroupAssignment.class);
 		c.createAlias("user", "User");
 		c.createAlias("group", "Group");
-		if(userId != null) {			
-			c.add(Restrictions.eq("User.userId", userId));
+		if(userIds != null) {			
+			c.add(Restrictions.in("User.userId", userIds));
 		}
 		if(groupId != null) {			
 			c.add(Restrictions.eq("Group.groupId", groupId));
@@ -159,22 +171,7 @@ public class GroupEngine {
 		}	
 		
 		return c.list();
-//		List<UserGroupAssignment> obtainedAssignments = c.list();
-//		if(provider != null && groupId == null && pendingOnly != true && accept == true)) {
-//			// calculate and add inferred assignments for parent group.
-//			List<UserGroupAssignment> inferredAssignments = new LinkedList<UserGroupAssignment>();
-//			for(UserGroupAssignment uga: obtainedAssignments) {
-//				inferredAssignments.add(uga);
-//				if(uga.getGroupRole().equals("USER")) {
-//					
-//				}
-//				
-//			}
-//			return inferredAssignments;
-//		} else {
-//			return obtainedAssignments;
-//		}
-	}
+	}	
 	
 	private static boolean assignmentRelevantForTime(UserGroupAssignment asgn, Date time) {  
 	    return (asgn.getFromDate() == null && (asgn.getUntilDate() == null || asgn.getUntilDate().compareTo(time) >= 0)) ||
@@ -453,42 +450,42 @@ public class GroupEngine {
 		return result;
 	}
 	 
-	/**
-	 * Returns a list of GroupRoles including the ones that are obtained by propagation of USER role to parent groups.
-	 * @param roles - initial roles
-	 * @return
-	 */
-	public static List<GroupRoles> inferParentRoles(SessionKeeper sk, List<GroupRoles> roles) {
-		Map<Pair<String, String>, GroupRoles> userAndGroupToRole = new HashMap<Pair<String, String>, GroupRoles>();
-		for(GroupRoles groles: roles) { // initialize map
-			userAndGroupToRole.put(Pair.of(groles.getUser().getUserId(), groles.getGroup().getGroupId()), groles);
-		}
-		
-		for(GroupRoles groles: roles) {
-			if(!groles.isUserRole()) continue;
-			OrganizationGroup parentGroup = groles.getGroup().getParentProviderGroup();
-			String userId = groles.getUser().getUserId();
-			while(parentGroup != null) {
-				String groupId = parentGroup.getGroupId();
-				if(!userAndGroupToRole.containsKey(Pair.of(userId, groupId))) {
-					userAndGroupToRole.put(Pair.of(userId, groupId), new GroupRoles(groles.getUser(), parentGroup, false, true));
-				} else {
-					userAndGroupToRole.get(Pair.of(userId, groupId)).setUserRole(true);
-				}
-				parentGroup = parentGroup.getParentProviderGroup();				
-			}
-		}
-		
-		return new LinkedList<GroupRoles>(userAndGroupToRole.values());
-	}
+//	/**
+//	 * Returns a list of GroupRoles including the ones that are obtained by propagation of USER role to parent groups.
+//	 * @param roles - initial roles
+//	 * @return
+//	 */
+//	public static List<GroupRoles> inferParentRoles(SessionKeeper sk, List<GroupRoles> roles) {
+//		Map<Pair<String, String>, GroupRoles> userAndGroupToRole = new HashMap<Pair<String, String>, GroupRoles>();
+//		for(GroupRoles groles: roles) { // initialize map
+//			userAndGroupToRole.put(Pair.of(groles.getUser().getUserId(), groles.getGroup().getGroupId()), groles);
+//		}
+//		
+//		for(GroupRoles groles: roles) {
+//			if(!groles.isUserRole()) continue;
+//			OrganizationGroup parentGroup = groles.getGroup().getParentProviderGroup();
+//			String userId = groles.getUser().getUserId();
+//			while(parentGroup != null) {
+//				String groupId = parentGroup.getGroupId();
+//				if(!userAndGroupToRole.containsKey(Pair.of(userId, groupId))) {
+//					userAndGroupToRole.put(Pair.of(userId, groupId), new GroupRoles(groles.getUser(), parentGroup, false, true));
+//				} else {
+//					userAndGroupToRole.get(Pair.of(userId, groupId)).setUserRole(true);
+//				}
+//				parentGroup = parentGroup.getParentProviderGroup();				
+//			}
+//		}
+//		
+//		return new LinkedList<GroupRoles>(userAndGroupToRole.values());
+//	}
 	
 	
 	/**
-	 * Returns a list of GroupRoles obtained by propagating ADMIN down
+	 * Returns a list of GroupRoles obtained by propagating ADMIN down and USER up
 	 * @param roles - initial roles
 	 * @return
 	 */
-	public static List<GroupRoles> inferChildrenRoles(SessionKeeper sk, List<GroupRoles> roles) {
+	public static List<GroupRoles> inferRoles(SessionKeeper sk, List<GroupRoles> roles) {
 		if(roles.size() == 0) return new LinkedList<GroupRoles>();
 		String provider = roles.get(0).getUser().getProvider();
 		if(provider == null) {
@@ -524,7 +521,8 @@ public class GroupEngine {
 		for(GroupRoles groles: roles) { // initialize map
 			userAndGroupToRole.put(Pair.of(groles.getUser().getUserId(), groles.getGroup().getGroupId()), groles);
 		}
-		// depth first search
+				
+		// depth first search - infer ADMIN ROLES
 		for(GroupRoles groles: roles) {
 			if(!groles.isAdminRole()) continue;
 			LinkedList<String> stack = new LinkedList<String>();
@@ -536,7 +534,7 @@ public class GroupEngine {
 				String tmpGroupId = stack.pop();				
 				OrganizationGroup currentGroup = toGroup.get(tmpGroupId);
 				if(!userAndGroupToRole.containsKey(Pair.of(userId, tmpGroupId))) {
-					userAndGroupToRole.put(Pair.of(userId, tmpGroupId), new GroupRoles(groles.getUser(), currentGroup, false, true));
+					userAndGroupToRole.put(Pair.of(userId, tmpGroupId), new GroupRoles(groles.getUser(), currentGroup, true, false));
 				} else {
 					userAndGroupToRole.get(Pair.of(userId, tmpGroupId)).setAdminRole(true);
 				}
@@ -546,8 +544,27 @@ public class GroupEngine {
 					}					
 				}				
 			}
-		}		
-		return new LinkedList<GroupRoles>(userAndGroupToRole.values());
+		}	
+		
+		// infer user roles
+		for(GroupRoles groles: roles) {
+			if(!groles.isUserRole()) continue;
+			OrganizationGroup parentGroup = groles.getGroup().getParentProviderGroup();
+			String userId = groles.getUser().getUserId();
+			while(parentGroup != null) {
+				String groupId = parentGroup.getGroupId();
+				if(!userAndGroupToRole.containsKey(Pair.of(userId, groupId))) {
+					userAndGroupToRole.put(Pair.of(userId, groupId), new GroupRoles(groles.getUser(), parentGroup, false, true));
+				} else {
+					userAndGroupToRole.get(Pair.of(userId, groupId)).setUserRole(true);
+				}
+				parentGroup = parentGroup.getParentProviderGroup();				
+			}
+		}
+		
+		return new LinkedList<GroupRoles>(userAndGroupToRole.values().stream()
+				.sorted(Comparator.comparing(x -> x.getGroup().getGroupId()))
+				.collect(Collectors.toList()));
 	}	
 	
 	public APIBaseResponse update(APIGroupUpdate req) {
@@ -576,6 +593,69 @@ public class GroupEngine {
 		}	
 	}
 		
+	
+	public static Map<String, List<GroupRoles>> groupRolesForUser(SessionKeeper sk, TrackingUser user, List<String> userFilter, Date time) {
+		List<UserGroupAssignment> assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), null, time, false, true, user.getProvider());
+		List<GroupRoles> roles = null;
+		List<GroupRoles> originalRoles = GroupEngine.rolesForUserInGroupsAtTime(assignments, user, null, time);
+	    if(user.getProvider() != null || user.getAdmin()) {  // add infered USER roles on parent groups.
+	    	roles = GroupEngine.inferRoles(sk, originalRoles); 
+	    } else {
+	    	roles = originalRoles;						
+	    }
+ 	    Map<String, List<GroupRoles>> groupToRoles = new HashMap<String, List<GroupRoles>>();
+	    String userId = user.getUserId();
+
+		for (GroupRoles role : roles) {
+			OrganizationGroup group = role.getGroup();
+			List<GroupRoles> rolesToList = new LinkedList<GroupRoles>();
+		    if(role.isAdminRole() || (group.getPersonalGroupUser() != null && user.getUserId().equals(group.getPersonalGroupUser().getUserId()))) {
+			    List<UserGroupAssignment> asgnmts2 = GroupEngine.usersListGroupAssignments(sk, userFilter, group.getGroupId(), new Date(), false, true, user.getProvider());							    		
+			    List<GroupRoles> tmpRoleList = rolesForAllUsersInGroup(asgnmts2, group.getGroupId(), time);
+			    List<GroupRoles> checkList = tmpRoleList.stream().filter(x -> x.getUser().getUserId() == userId).collect(Collectors.toList());
+			    if(checkList.size() == 0) {  // fix propagated admin role
+			    	tmpRoleList.add(role);
+			    } else {   
+			    	tmpRoleList.get(0).setAdminRole(true);
+			    }				    
+			    rolesToList = tmpRoleList.stream()
+						.sorted(Comparator.comparing(x -> x.getUser().getUserId()))
+						.collect(Collectors.toList());				    
+		    } else {			    	
+		    	rolesToList.add(role);
+		    }
+		    groupToRoles.put(group.getGroupId(), rolesToList);		
+		}
+		return groupToRoles;
+	}
+	
+	public static Map<String, String> allowedUsersForAdminToSee(SessionKeeper sk, TrackingUser user, List<String> userFilter, Date time) {
+		Map<String, List<GroupRoles>> allToSee = groupRolesForUser(sk, user, userFilter, time);
+		Set<String> allowedUsers = new HashSet<String>();
+		Set<String> initialCandidates = new HashSet<String>(userFilter);
+		for(String groupId: allToSee.keySet()) {
+			Set<String> candidates = new HashSet<String>();
+			boolean isAdmin = false;
+			for(GroupRoles role: allToSee.get(groupId)) {
+				String current = role.getUser().getUserId();
+				if(current.equals(user.getUserId())) {
+					isAdmin = role.isAdminRole();
+				} else if(initialCandidates.contains(current)) {
+					candidates.add(current);
+				}
+			}
+			if(isAdmin) {
+				allowedUsers.addAll(candidates);
+			}
+		}
+		Map<String, String> result = new HashMap<String, String>();
+		for(String cand: allowedUsers) {
+			result.put(cand, "");  // currently nothing
+		}
+		return result;
+	}
+	
+	
 	@SuppressWarnings("unchecked")
 	public APIGroupQueryResponse list(APIGroupQuery req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
@@ -596,35 +676,21 @@ public class GroupEngine {
 				}
 			} 
 			Date now = new Date();
-			List<UserGroupAssignment> assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), null, now, false, true, user.getProvider());
-			List<GroupRoles> roles = null;
-			List<GroupRoles> originalRoles = GroupEngine.rolesForUserInGroupsAtTime(assignments, user, null, now);
-		    if(user.getProvider() != null || user.getAdmin()) {  // add infered USER roles on parent groups.
-		    	roles = GroupEngine.inferParentRoles(sk, originalRoles); 
-		    	roles.addAll(GroupEngine.inferChildrenRoles(sk, originalRoles));
-		    }						
+			Map<String, List<GroupRoles>> adminGroups = groupRolesForUser(sk, user, null, now);
+			
 			List<APIGroupDetail> groups = new LinkedList<APIGroupDetail>();
-			for (GroupRoles role : roles) {
-				OrganizationGroup group = role.getGroup();
+			List<String> sortedGroups = adminGroups.keySet().stream().sorted().collect(Collectors.toList());
+			for (String groupId : sortedGroups) {
+				List<GroupRoles> rolesToList = adminGroups.get(groupId);
+				if(rolesToList == null || rolesToList.size() == 0) continue;
+				OrganizationGroup group = rolesToList.get(0).getGroup();
 			    APIGroupDetail det = new APIGroupDetail();
 			    det.groupId = group.getGroupId();
 			    det.description = group.getDescription();
 			    det.privateGroup = group.getPrivateGroup();
-
-				List<GroupRoles> rolesToList = new LinkedList<GroupRoles>();
-			    if(role.isAdminRole() || (group.getPersonalGroupUser() != null && user.getUserId().equals(group.getPersonalGroupUser().getUserId()))) {
-				    det.creatorId = group.getCreator().getUserId();			    	
-				    det.personalGroupUserId = group.getPersonalGroupUser() != null ? group.getPersonalGroupUser().getUserId() : null;
-				    det.timestamp = group.getTimestamp();
-				    String userId = user.getUserId();
-				    List<UserGroupAssignment> asgnmts2 = GroupEngine.usersGroupAssignments(sk, null, group.getGroupId(), new Date(), false, true, user.getProvider());
-					rolesToList = rolesForAllUsersInGroup(asgnmts2, group.getGroupId(), now).stream()
-//							.filter(x -> x.getUser().getUserId() != userId)
-							.sorted(Comparator.comparing(x -> x.getUser().getUserId()))
-							.collect(Collectors.toList());				    
-			    } else {			    	
-			    	rolesToList.add(role);
-			    }
+			    det.creatorId = group.getCreator().getUserId();			    	
+			    det.personalGroupUserId = group.getPersonalGroupUser() != null ? group.getPersonalGroupUser().getUserId() : null;
+			    det.timestamp = group.getTimestamp();
 			    det.setUsers(rolesToList.stream()
 			    				.map(x -> new APIUserGroupRolesDetail(x))
 			    				.collect(Collectors.toList())
@@ -635,7 +701,75 @@ public class GroupEngine {
 			return res;
 		}
 	}	
-		
+
+	
+//	@SuppressWarnings("unchecked")
+//	public APIGroupQueryResponse list(APIGroupQuery req) {
+//		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
+//			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
+//			if(tokenUser == null) {
+//				return new APIGroupQueryResponse("AUTH_ERROR", "");
+//			}	
+//			TrackingUser user = tokenUser;
+//			if(req.forUser != null && tokenUser.getUserId() != req.forUser) {
+//				if(tokenUser.getAdmin()) {
+//					TrackingUser tmpUser = authEngine.getUser(sk, req.forUser, req.forUserProvider);
+//					if(tmpUser == null) {
+//						return new APIGroupQueryResponse("NO_SUCH_USER", "");
+//					}
+//					user = tmpUser;
+//				} else {
+//					return new APIGroupQueryResponse("AUTH_ERROR", "Only admin can list groups for other users.");
+//				}
+//			} 
+//			Date now = new Date();
+//			List<UserGroupAssignment> assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), null, now, false, true, user.getProvider());
+//			List<GroupRoles> roles = null;
+//			List<GroupRoles> originalRoles = GroupEngine.rolesForUserInGroupsAtTime(assignments, user, null, now);
+//		    if(user.getProvider() != null || user.getAdmin()) {  // add infered USER roles on parent groups.
+//		    	roles = GroupEngine.inferRoles(sk, originalRoles); 
+//		    }						
+//			List<APIGroupDetail> groups = new LinkedList<APIGroupDetail>();
+//			for (GroupRoles role : roles) {
+//				OrganizationGroup group = role.getGroup();
+//			    APIGroupDetail det = new APIGroupDetail();
+//			    det.groupId = group.getGroupId();
+//			    det.description = group.getDescription();
+//			    det.privateGroup = group.getPrivateGroup();
+//
+//				List<GroupRoles> rolesToList = new LinkedList<GroupRoles>();
+//			    if(role.isAdminRole() || (group.getPersonalGroupUser() != null && user.getUserId().equals(group.getPersonalGroupUser().getUserId()))) {
+//				    det.creatorId = group.getCreator().getUserId();			    	
+//				    det.personalGroupUserId = group.getPersonalGroupUser() != null ? group.getPersonalGroupUser().getUserId() : null;
+//				    det.timestamp = group.getTimestamp();
+//				    String userId = user.getUserId();
+//				    List<UserGroupAssignment> asgnmts2 = GroupEngine.usersGroupAssignments(sk, null, group.getGroupId(), new Date(), false, true, user.getProvider());							    		
+//				    List<GroupRoles> tmpRoleList = rolesForAllUsersInGroup(asgnmts2, group.getGroupId(), now);
+//				    List<GroupRoles> checkList = tmpRoleList.stream().filter(x -> x.getUser().getUserId() == userId).collect(Collectors.toList());
+//				    if(checkList.size() == 0) {  // fix propagated admin role
+//				    	tmpRoleList.add(role);
+//				    } else {   
+//				    	tmpRoleList.get(0).setAdminRole(true);
+//				    }				    
+//				    rolesToList = tmpRoleList.stream()
+//							.sorted(Comparator.comparing(x -> x.getUser().getUserId()))
+//							.collect(Collectors.toList());				    
+//			    } else {			    	
+//			    	rolesToList.add(role);
+//			    }
+//			    det.setUsers(rolesToList.stream()
+//			    				.map(x -> new APIUserGroupRolesDetail(x))
+//			    				.collect(Collectors.toList())
+//			    		    );
+//			    groups.add(det);
+//			}
+//			APIGroupQueryResponse res = new APIGroupQueryResponse(groups);
+//			return res;
+//		}
+//	}	
+	
+	
+	
 	public APIShareOrInviteResponse registerLinks(APIShareOrInvite req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	
 			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);

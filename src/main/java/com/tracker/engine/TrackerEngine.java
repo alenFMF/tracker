@@ -2,6 +2,7 @@ package com.tracker.engine;
 
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collector;
@@ -142,15 +143,27 @@ public class TrackerEngine {
 			c.createAlias("device", "Device");
 			c.createAlias("user", "User");
 			
-			if(tokenUser.getAdmin()) {
-				if (req.userIds != null && !req.userIds.isEmpty()) {
-					c.add(Restrictions.in("User.userId", req.userIds));		
-				} else {  // get admins track
-					c.add(Restrictions.eq("User.userId", tokenUser.getUserId()));
-				}		
-			} else {
+//			if(tokenUser.getAdmin()) {
+//				if (req.userIds != null && !req.userIds.isEmpty()) {
+//					c.add(Restrictions.in("User.userId", req.userIds));		
+//				} else {  // get admins track
+//					c.add(Restrictions.eq("User.userId", tokenUser.getUserId()));
+//				}		
+//			} else {
+//				c.add(Restrictions.eq("User.userId", tokenUser.getUserId()));
+//			}
+			
+			boolean isPersonalQuery = true;
+			if (req.userIds != null && !req.userIds.isEmpty() && (tokenUser.getProvider() != null || tokenUser.getAdmin())) {
+				c.add(Restrictions.in("User.userId", req.userIds));		
+				isPersonalQuery = false;
+			} else {  // get admins track
 				c.add(Restrictions.eq("User.userId", tokenUser.getUserId()));
-			}
+				isPersonalQuery = true;
+			}		
+			
+			
+			
 //			if (req.deviceIds != null && !req.deviceIds.isEmpty()) {
 //				c.add(Restrictions.in("Device.uuid", req.deviceIds));
 //			} 
@@ -196,7 +209,26 @@ public class TrackerEngine {
 			List<APITrackDetail> trackList = new ArrayList<APITrackDetail>();
 			
 			// TODO: implement interval check and admin propagation
+			Date now = new Date();
+			
+			Map<String, Boolean> allowForUsers = new HashMap<String, Boolean>();
+			if(isPersonalQuery) {
+				allowForUsers.put(tokenUser.getUserId(), true);
+			} else {
+				if(tokenUser.getAdmin()) {
+					allowForUsers = null; // indicates no conditions
+				} else {
+					Map<String, String> tmpMap = GroupEngine.allowedUsersForAdminToSee(sk, tokenUser, req.userIds, now);
+					for(String key: tmpMap.keySet()) {
+						allowForUsers.put(key, true);
+					}
+				}
+			}
+			
 			for(Map.Entry<Pair<String, String>, List<TableSample>> e: sampleMap.entrySet()) {
+				if(allowForUsers != null) {
+					if(allowForUsers.get(e.getKey().getLeft()) != true) continue;
+				}
 				APITrackDetail det = new APITrackDetail();
 				det.userId = e.getKey().getLeft();
 				det.deviceUuid = e.getKey().getRight();
