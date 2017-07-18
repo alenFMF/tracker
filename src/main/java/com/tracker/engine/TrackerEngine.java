@@ -222,12 +222,14 @@ public class TrackerEngine {
 					for(String key: tmpMap.keySet()) {
 						allowForUsers.put(key, true);
 					}
+					allowForUsers.put(tokenUser.getUserId(), true); // always allow for self
 				}
 			}
 			
 			for(Map.Entry<Pair<String, String>, List<TableSample>> e: sampleMap.entrySet()) {
 				if(allowForUsers != null) {
-					if(allowForUsers.get(e.getKey().getLeft()) != true) continue;
+					Boolean isOk = allowForUsers.get(e.getKey().getLeft());
+					if (isOk == null || isOk == false) continue;
 				}
 				APITrackDetail det = new APITrackDetail();
 				det.userId = e.getKey().getLeft();
