@@ -345,15 +345,19 @@ public class GroupEngine {
 		return intervals;
 	}
 
-	/**
-	 * Returns effective roles for a user in groups based on assignments.
-	 * @param assignments - assignments from which roles are deduced (must be all existing containing 'time') 
-	 * @param user - must be not null (no checking currently, null pointer exception). All assignments not related to user are ignored.
-	 * @param groupId - apply filter for specific group. Not mandatory.
-	 * @param time - filter out assignments for containing specific time (if not null).
-	 * @return list of roles
-	 */
 	public static List<GroupRoles> rolesForUserInGroupsAtTime(List<UserGroupAssignment> assignments, TrackingUser user, String groupId, Date time) {
+		return rolesForUserInGroupsAtTime(assignments, user, groupId, time, null, null);
+	}
+
+		/**
+         * Returns effective roles for a user in groups based on assignments.
+         * @param assignments - assignments from which roles are deduced (must be all existing containing 'time')
+         * @param user - must be not null (no checking currently, null pointer exception). All assignments not related to user are ignored.
+         * @param groupId - apply filter for specific group. Not mandatory.
+         * @param time - filter out assignments for containing specific time (if not null).
+         * @return list of roles
+         */
+	public static List<GroupRoles> rolesForUserInGroupsAtTime(List<UserGroupAssignment> assignments, TrackingUser user, String groupId, Date time, Date fromDate, Date untilDate) {
 		if(user == null) return null;
 		
 		List<UserGroupAssignment> assgn2 = assignments;
@@ -379,7 +383,7 @@ public class GroupEngine {
 			@SuppressWarnings("unchecked")
 			List<UserGroupAssignment> groupAssignments = (List<UserGroupAssignment>) e.getValue().stream()
 											.sorted(Comparator.comparing(x -> x.getTimestamp()))
-											.collect(Collectors.toList());;
+											.collect(Collectors.toList());
 
 			Boolean adminCnt = false;
 			Boolean userCnt = false;
@@ -408,7 +412,23 @@ public class GroupEngine {
 			if(user.getAdmin()) { // system admin
 				adminCnt = true;
 			}
-			GroupRoles grol = new GroupRoles(user, group, adminCnt, userCnt);
+
+			List<UserGroupAssignment> userAssignments = groupAssignments.stream()
+					.filter(x -> x.getGroupRole().equals("USER"))
+					.collect(Collectors.toList());
+
+			List<UserGroupAssignment> adminAssignments = groupAssignments.stream()
+					.filter(x -> x.getGroupRole().equals("ADMIN"))
+					.collect(Collectors.toList());
+
+			List<Pair<Date, Date>> adminIntervals = null;
+			List<Pair<Date, Date>> userIntervals = null;
+			if (fromDate != null) {
+				adminIntervals = getAllowedIntervals(adminAssignments, fromDate, untilDate != null ? untilDate : time);
+				userIntervals = getAllowedIntervals(userAssignments, fromDate, untilDate != null ? untilDate : time);
+			}
+
+			GroupRoles grol = new GroupRoles(user, group, adminCnt, userCnt, adminIntervals, userIntervals);
 			if(personalGroupOwner != null && personalGroupOwner.equals(user.getUserId())) {
 				primaryGroup = grol;
 			} else {
@@ -594,10 +614,10 @@ public class GroupEngine {
 	}
 		
 	
-	public static Map<String, List<GroupRoles>> groupRolesForUser(SessionKeeper sk, TrackingUser user, List<String> userFilter, Date time) {
+	public static Map<String, List<GroupRoles>> groupRolesForUser(SessionKeeper sk, TrackingUser user, List<String> userFilter, Date time, Date fromDate, Date untilDate) {
 		List<UserGroupAssignment> assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), null, time, false, true, user.getProvider());
 		List<GroupRoles> roles = null;
-		List<GroupRoles> originalRoles = GroupEngine.rolesForUserInGroupsAtTime(assignments, user, null, time);
+		List<GroupRoles> originalRoles = GroupEngine.rolesForUserInGroupsAtTime(assignments, user, null, time, fromDate, untilDate);
 	    if(user.getProvider() != null || user.getAdmin()) {  // add infered USER roles on parent groups.
 	    	roles = GroupEngine.inferRoles(sk, originalRoles); 
 	    } else {
@@ -628,7 +648,11 @@ public class GroupEngine {
 		}
 		return groupToRoles;
 	}
-	
+
+	public static Map<String, List<GroupRoles>> groupRolesForUser(SessionKeeper sk, TrackingUser user, List<String> userFilter, Date time) {
+		return groupRolesForUser(sk, user, userFilter, time, null, null);
+	}
+
 	public static Map<String, String> allowedUsersForAdminToSee(SessionKeeper sk, TrackingUser user, List<String> userFilter, Date time) {
 		Map<String, List<GroupRoles>> allToSee = groupRolesForUser(sk, user, userFilter, time);
 		Set<String> allowedUsers = new HashSet<String>();
@@ -674,9 +698,9 @@ public class GroupEngine {
 				} else {
 					return new APIGroupQueryResponse("AUTH_ERROR", "Only admin can list groups for other users.");
 				}
-			} 
+			}
 			Date now = new Date();
-			Map<String, List<GroupRoles>> adminGroups = groupRolesForUser(sk, user, null, now);
+			Map<String, List<GroupRoles>> adminGroups = groupRolesForUser(sk, user, null, now, req.fromDate, req.untilDate);
 			
 			List<APIGroupDetail> groups = new LinkedList<APIGroupDetail>();
 			List<String> sortedGroups = adminGroups.keySet().stream().sorted().collect(Collectors.toList());
