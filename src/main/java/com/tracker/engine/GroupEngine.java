@@ -298,6 +298,13 @@ public class GroupEngine {
 					if (d1.getRight().equals(d2.getRight())) return 0;
 					return d1.getRight().before(d2.getRight()) ? -1 : 1;
 				};
+				if (intervals.size() == 0 && assignment.getGrant().equals("ALLOW")) {
+					intervals.add(newInterval);
+					continue;
+				} else if (intervals.size() == 0) {
+					break;
+				}
+
 				Integer fromIndex = binarySearch(intervals, newInterval, fromDateComparator);
 				Integer untilIndex = binarySearch(intervals, newInterval, untilDateComparator);
 				fromIndex = fromIndex < 0 ? Math.abs(fromIndex) - 1 : fromIndex;
