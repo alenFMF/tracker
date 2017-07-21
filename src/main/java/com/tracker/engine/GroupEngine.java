@@ -675,6 +675,13 @@ public class GroupEngine {
 					return new APIGroupQueryResponse("AUTH_ERROR", "Only admin can list groups for other users.");
 				}
 			} 
+			if(req.queryString != null) {
+				List<APIGroupDetail> groups = queryGroupsForUser(sk, user, req.queryString);
+				APIGroupQueryResponse res = new APIGroupQueryResponse(groups);
+				return res;								
+			}
+			
+			
 			Date now = new Date();
 			Map<String, List<GroupRoles>> adminGroups = groupRolesForUser(sk, user, null, now);
 			
@@ -702,7 +709,32 @@ public class GroupEngine {
 		}
 	}	
 
-	
+	// Group listing by query string
+	public static List<APIGroupDetail> queryGroupsForUser(SessionKeeper sk, TrackingUser user, String queryString) {
+		Criteria c = sk.createCriteria(OrganizationGroup.class);
+		String provider = user.getProvider();
+		if(provider == null) {
+			c.add(Restrictions.isNull("provider"));
+		} else {
+			c.add(Restrictions.eq("provider", provider));
+		}
+		c.add(Restrictions.ilike("groupId", "%" + queryString + "%"));
+		@SuppressWarnings("unchecked")
+		List<OrganizationGroup> groups = c.list();
+		List<APIGroupDetail> result = new LinkedList<APIGroupDetail>();
+		for(OrganizationGroup group: groups) {
+			APIGroupDetail det = new APIGroupDetail();
+		    det.groupId = group.getGroupId();
+		    det.description = group.getDescription();
+		    det.privateGroup = group.getPrivateGroup();
+		    det.creatorId = group.getCreator().getUserId();			    	
+		    det.personalGroupUserId = group.getPersonalGroupUser() != null ? group.getPersonalGroupUser().getUserId() : null;
+		    det.timestamp = group.getTimestamp();
+		    result.add(det);			
+		}
+		return result;
+	}
+
 //	@SuppressWarnings("unchecked")
 //	public APIGroupQueryResponse list(APIGroupQuery req) {
 //		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {	

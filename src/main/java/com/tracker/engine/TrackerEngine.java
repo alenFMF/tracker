@@ -211,17 +211,20 @@ public class TrackerEngine {
 			// TODO: implement interval check and admin propagation
 			Date now = new Date();
 			
+			// to bi moralo biti Map<String, List<Interval>>, preslikava user -> dovoljeni intervali
 			Map<String, Boolean> allowForUsers = new HashMap<String, Boolean>();
 			if(isPersonalQuery) {
-				allowForUsers.put(tokenUser.getUserId(), true);
+				allowForUsers.put(tokenUser.getUserId(), true);  // dodati cel interval
 			} else {
 				if(tokenUser.getAdmin()) {
 					allowForUsers = null; // indicates no conditions
 				} else {
+					// ta mora vrniti Map<String, List<Interval>>
 					Map<String, String> tmpMap = GroupEngine.allowedUsersForAdminToSee(sk, tokenUser, req.userIds, now);
 					for(String key: tmpMap.keySet()) {
 						allowForUsers.put(key, true);
 					}
+					// dodati cel interval
 					allowForUsers.put(tokenUser.getUserId(), true); // always allow for self
 				}
 			}
@@ -234,6 +237,7 @@ public class TrackerEngine {
 				APITrackDetail det = new APITrackDetail();
 				det.userId = e.getKey().getLeft();
 				det.deviceUuid = e.getKey().getRight();
+				// tukaj bo for zanka ki bo filtrirala po intervalih
 				det.samples = e.getValue()
 								.stream()
 								.map(el -> 

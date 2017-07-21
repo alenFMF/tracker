@@ -460,10 +460,20 @@ public class AuthenticationEngine {
 			if(tokenUser == null) {
 				return new APIUsersQueryResponse("AUTH_ERROR", "Invalid token.");
 			}
-			if(!tokenUser.getAdmin()) {
+			if(!tokenUser.getAdmin() && req.queryString == null) {
 				return new APIUsersQueryResponse("AUTH_ERROR", "Token user does not have admin privileges.");				
 			}
-			Criteria c = sk.createCriteria(TrackingUser.class);						
+			Criteria c = sk.createCriteria(TrackingUser.class);
+			if(req.queryString != null) {
+				if(req.queryString.length() < 3) {
+					return new APIUsersQueryResponse("ERROR", "Query string must have at least 3 characters.");
+				}
+				c.add(Restrictions.disjunction()
+						.add(Restrictions.ilike("userId", "%" + req.queryString + "%"))
+						.add(Restrictions.ilike("name", "%" + req.queryString + "%"))
+				);
+				c.setMaxResults(10);
+			} 
 			List<TrackingUser> recs = c.list();	
 			List<APIUserDetail> users = recs.stream()
 				.map(x -> new APIUserDetail(x.getUserId(), x.getAdmin(), x.getProvider()))

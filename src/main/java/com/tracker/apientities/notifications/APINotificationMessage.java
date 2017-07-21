@@ -15,10 +15,11 @@ public class APINotificationMessage {
 	public String receiverId;
 	public String travelOrderid;
 	public Boolean sent;
+	public String link;
 	
 	public APINotificationMessage() {}
 	
-	public APINotificationMessage(EventMessage em) {
+	public APINotificationMessage(EventMessage em, String linkRoot) {
 		this.messageId = em.getId();
 		this.timestamp = em.getTimestamp();
 		this.timeRecorded = em.getTimeRecorded();
@@ -35,5 +36,8 @@ public class APINotificationMessage {
 			this.travelOrderid = em.getTravelOrder().getTravelOrderId();
 		}
 		this.sent = em.getSent();
+		if(em.getBody().getLink() != null && linkRoot != null) {
+			this.link = linkRoot + em.getBody().getLink();
+		}
 	}
 }

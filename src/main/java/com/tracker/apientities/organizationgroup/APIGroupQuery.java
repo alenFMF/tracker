@@ -6,5 +6,5 @@ public class APIGroupQuery {
 	public String forUser; // only sys admin can list groups for other users.
 	 					   // if null, it is meant for the token user
 	public String forUserProvider;
-
+	public String queryString;
 }

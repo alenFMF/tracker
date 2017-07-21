@@ -23,6 +23,8 @@ public class EventMessage extends BaseEntity {
 
 	public String title;
 	
+	public String contextGroupId;
+	
 	@ManyToOne
 	public MessageBody body;
 	
@@ -80,11 +82,18 @@ public class EventMessage extends BaseEntity {
 	public void setTitle(String title) {
 		this.title = title;
 	}
-	
+	public String getContextGroupId() {
+		return contextGroupId;
+	}
+	public void setContextGroupId(String contextGroupId) {
+		this.contextGroupId = contextGroupId;
+	}
 }
 
 /* Possible message types:
  * NOTIFICATION - notification message 
  * START - start/resume tracking
  * STOP - stop/pause tracking
+ * GROUP_NOTIFICATION - comunication is in group context. Receiver can be empty
+ * MOBILE_LOG - mobile log (stored on S3).
  */ 

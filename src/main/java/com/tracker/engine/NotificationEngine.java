@@ -45,6 +45,12 @@ public class NotificationEngine {
 	@Autowired
 	private NotificationService notificationService;
 	
+	@Autowired
+	private S3Service s3Service;
+	
+	@Autowired 
+	private EmailService emailService;
+	
 	public APIBaseResponse register(APIDeviceRegister req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
 			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
@@ -183,14 +189,6 @@ public class NotificationEngine {
 	}
 
 	public APISendNotificationResponse notify(APISendNotification req) {
-// Android		
-//        String regId = "eMknyAoS-Hw:APA91bGjNajIfzVJrEuJQaP9155_LMDpQSE5Xk_SrWIhg5qNtURiH1ioW5iWOrg5I-bwOJViUi0IvC_mrAz32I67dQb80f16QG1G3H_PkoO5FrJJ8MG9LoY3ztd3FpQx-HmMjpRuxwFO";
-		//iOS
-//	      String regId = "80e719168986a6953445dc561dbbd6806657c5929c0f0aab97d7b19b64f0d319";
-//        boolean test = pushNotificationToGCM(regId, message);
-//	      String message = "Živjo svet!";
-//	      boolean test = pushNotificationToAPNS(regId, "GOOPTI", message);
-//        return new APISendNotificationResponse("OK", "Pa je šlo." + test);
 		
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
 			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
@@ -204,20 +202,21 @@ public class NotificationEngine {
 				return new APISendNotificationResponse("NO_RECIPIENT","NOTIFICATION type requires recipient");
 			}
 			if(req.message != null) {
-				if(req.messageType == null || !(req.messageType.equals("TEXT") || req.messageType.equals("HTML")) ) {
+				if(req.messageType == null || !(req.messageType.equals("TEXT") || req.messageType.equals("HTML") || req.messageType.equals("FILE")) ) {
 					return new APISendNotificationResponse("WRONG_MESSAGE_TYPE","");
 				}
 			}
 			List<Pair<APINotificationStatus, EventMessage>> records = new LinkedList<Pair<APINotificationStatus, EventMessage>>();
-			MessageBody mBody = null;
-			if(req.message != null) {
-				mBody = new MessageBody();
-				mBody.setMessageType(req.messageType);
-				mBody.setMessage(req.message);				
-			}
 			Date now = new Date();
 			boolean send = false;
 			if(req.type.equals("NOTIFICATION")) {
+				MessageBody mBody = null;
+				if(req.message != null) {
+					mBody = new MessageBody();
+					mBody.setMessageType(req.messageType);
+					mBody.setMessage(req.message);				
+				}
+
 				if(mBody == null) {
 					return new APISendNotificationResponse("EMPTY_MESSAGE","Null messages are not allowed for NOTIFICATION type.");
 				}
@@ -303,6 +302,85 @@ public class NotificationEngine {
 				res.notificationStatus = statuses;
 				return res;
 			}
+			
+			if(req.type.equals("GROUP_NOTIFICATION")) {
+				EventMessage msg = new EventMessage();
+				msg.setSender(tokenUser);
+				msg.setContextGroupId(req.group);
+				msg.setSent(true);
+				msg.setTimestamp(now);
+				msg.setTimeRecorded(now);
+				msg.setType(req.type);		
+				sk.save(msg);
+				sk.commit();
+				APINotificationStatus stat = new APINotificationStatus(tokenUser, "OK", "");
+				stat.messageId = msg.getId();
+				APISendNotificationResponse res = new APISendNotificationResponse();
+				List<APINotificationStatus> statuses = new LinkedList<APINotificationStatus>();
+				statuses.add(stat);
+				res.notificationStatus = statuses;
+				return res;
+			}
+
+			if(req.type.equals("MOBILE_LOG")) {
+				EventMessage msg = new EventMessage();
+				msg.setSender(tokenUser);
+				msg.setSent(true);
+				msg.setTimestamp(now);
+				msg.setTimeRecorded(now);
+				msg.setType(req.type);
+				
+				MessageBody mBody = null;
+				if(req.message != null) {
+					mBody = new MessageBody();
+					mBody.setMessageType(req.messageType == null ? req.type : req.messageType);
+					String link = s3Service.putRawText(req.message);
+					mBody.setLink(link);				
+				}
+				
+				sk.save(mBody);
+				msg.setBody(mBody);				
+				sk.save(msg);
+				sk.commit();
+				APINotificationStatus stat = new APINotificationStatus(tokenUser, "OK", "");
+				stat.messageId = msg.getId();
+				APISendNotificationResponse res = new APISendNotificationResponse();
+				List<APINotificationStatus> statuses = new LinkedList<APINotificationStatus>();
+				statuses.add(stat);
+				res.notificationStatus = statuses;
+				return res;
+			}
+
+			if(req.type.equals("EMAIL_TEXT")) {
+				EventMessage msg = new EventMessage();
+				msg.setSender(tokenUser);
+				msg.setSent(true);
+				msg.setTimestamp(now);
+				msg.setTimeRecorded(now);
+				msg.setType(req.type);
+				msg.setTitle(req.title);
+				
+				MessageBody mBody = null;
+				if(req.message != null) {
+					mBody = new MessageBody();
+					mBody.setMessageType(req.messageType == null ? req.type : req.messageType);
+					emailService.send(req.to, req.title, req.message, req.messageType);
+				}
+				
+				sk.save(mBody);
+				msg.setBody(mBody);				
+				sk.save(msg);
+				sk.commit();
+				APINotificationStatus stat = new APINotificationStatus(tokenUser, "OK", "");
+				stat.messageId = msg.getId();
+				APISendNotificationResponse res = new APISendNotificationResponse();
+				List<APINotificationStatus> statuses = new LinkedList<APINotificationStatus>();
+				statuses.add(stat);
+				res.notificationStatus = statuses;
+				return res;
+			}
+			
+			
 			return new APISendNotificationResponse("ERROR","");
 		}					
 	}
@@ -322,11 +400,12 @@ public class NotificationEngine {
 			if(req.untilDate != null) {
 					crit1.add(Restrictions.le("timestamp", req.untilDate));		
 			}
+			String webRootLink = this.s3Service.getS3WebLink();
 			crit1.addOrder(Order.asc("timestamp"));
 			List<EventMessage> sentMessages = crit1.list();
 			List<APINotificationMessage> sentResp = new LinkedList<APINotificationMessage>();
 			for(EventMessage mes: sentMessages) {
-				sentResp.add(new APINotificationMessage(mes));
+				sentResp.add(new APINotificationMessage(mes, webRootLink));
 			}
 			APINotificationsResponse res = new APINotificationsResponse();
 			res.sent = sentResp;
@@ -340,7 +419,7 @@ public class NotificationEngine {
 			List<EventMessage> receivedMessages = crit2.list();
 			List<APINotificationMessage> receivedResp = new LinkedList<APINotificationMessage>();
 			for(EventMessage mes: receivedMessages) {
-				receivedResp.add(new APINotificationMessage(mes));
+				receivedResp.add(new APINotificationMessage(mes, webRootLink));
 			}		
 			res.received = receivedResp;
 			return res;			
