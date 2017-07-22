@@ -13,7 +13,7 @@ import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.stereotype.Component;
 
-//@Component
+@Component
 public class EmailService {
 	
 	@Value("#{generalProperties.emailConfigPath}")

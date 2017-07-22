@@ -45,10 +45,10 @@ public class NotificationEngine {
 	@Autowired
 	private NotificationService notificationService;
 	
-//	@Autowired
+	@Autowired
 	private S3Service s3Service;
 	
-//	@Autowired 
+	@Autowired 
 	private EmailService emailService;
 	
 	public APIBaseResponse register(APIDeviceRegister req) {
