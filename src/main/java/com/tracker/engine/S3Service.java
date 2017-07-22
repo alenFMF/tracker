@@ -22,7 +22,7 @@ import com.amazonaws.services.s3.AmazonS3ClientBuilder;
 import com.amazonaws.services.s3.model.ObjectMetadata;
 import com.amazonaws.services.s3.model.PutObjectRequest;
 
-@Component
+//@Component
 public class S3Service {
 	
 	@Value("#{generalProperties.S3ConfigPath}")
