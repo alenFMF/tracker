@@ -13,7 +13,7 @@ public class TravelOrder extends BaseEntity {
 	
 	public String description;
 	
-	@OneToMany(mappedBy="user")
+	@OneToMany(mappedBy="travelOrder")
 	public List<DriverAssignment> driverAssignments;
 	
 	@ManyToOne
