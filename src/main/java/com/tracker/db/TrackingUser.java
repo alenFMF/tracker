@@ -36,6 +36,9 @@ public class TrackingUser extends BaseEntity {
 	@OneToOne
 	public OrganizationGroup personalGroup;
 	
+	@OneToOne
+	public GPSRecord lastRecord;
+	
 	@OneToMany(mappedBy="user")
 	private List<NotificationRegistration> notificationDevices;
 	
@@ -161,6 +164,14 @@ public class TrackingUser extends BaseEntity {
 
 	public void setMonitored(Boolean monitored) {
 		this.monitored = monitored;
+	}
+
+	public GPSRecord getLastRecord() {
+		return lastRecord;
+	}
+
+	public void setLastRecord(GPSRecord lastRecord) {
+		this.lastRecord = lastRecord;
 	} 
 	
 }

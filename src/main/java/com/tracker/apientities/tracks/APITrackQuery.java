@@ -14,4 +14,5 @@ public class APITrackQuery {
 	public Date endDate;
 	public Double requiredAccuracy;
 	public Boolean singlePointStops;
+	public Boolean lastPositionsOnly;   // ignores startDate and endDate
 }

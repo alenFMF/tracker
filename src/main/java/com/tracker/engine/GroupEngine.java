@@ -37,6 +37,7 @@ import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentUpdate;
 import com.tracker.apientities.organizationgroup.APIUserGroupAssignmentUpdateResponse;
 import com.tracker.apientities.organizationgroup.APIUserGroupRolesDetail;
 import com.tracker.db.AppConfiguration;
+import com.tracker.db.GPSRecord;
 import com.tracker.db.OrganizationGroup;
 import com.tracker.db.TrackingUser;
 import com.tracker.db.UserGroupAssignment;
@@ -632,7 +633,10 @@ public class GroupEngine {
 	public static Map<String, String> allowedUsersForAdminToSee(SessionKeeper sk, TrackingUser user, List<String> userFilter, Date time) {
 		Map<String, List<GroupRoles>> allToSee = groupRolesForUser(sk, user, userFilter, time);
 		Set<String> allowedUsers = new HashSet<String>();
-		Set<String> initialCandidates = new HashSet<String>(userFilter);
+		Set<String> initialCandidates = null; ;
+		if(userFilter != null) { // null means no filter
+			initialCandidates = new HashSet<String>(userFilter);
+		}
 		for(String groupId: allToSee.keySet()) {
 			Set<String> candidates = new HashSet<String>();
 			boolean isAdmin = false;
@@ -640,7 +644,7 @@ public class GroupEngine {
 				String current = role.getUser().getUserId();
 				if(current.equals(user.getUserId())) {
 					isAdmin = role.isAdminRole();
-				} else if(initialCandidates.contains(current)) {
+				} else if(initialCandidates == null || initialCandidates.contains(current)) {  // filter
 					candidates.add(current);
 				}
 			}
@@ -1058,7 +1062,8 @@ public class GroupEngine {
 			}
 			
 //			boolean status = migration1(sk);
-			boolean status = migration2(sk);
+//			boolean status = migration2(sk);
+			boolean status = migration4(sk);			
 //			status = migration3(sk);
 			if(status) {
 				return new APIBaseResponse();
@@ -1082,6 +1087,29 @@ public class GroupEngine {
 //			sk.delete(uga);
 		}
 		sk.endTransaction();
+		sk.commit();
+		return true;
+	}
+	
+	
+	public boolean migration4(SessionKeeper sk) {
+		// create missing links to last GPS record
+		Criteria c = sk.createCriteria(TrackingUser.class)
+				.add(Restrictions.isNull("lastRecord"));
+
+		@SuppressWarnings("unchecked")
+		List<TrackingUser> withoutLastRecords = c.list();
+		for(TrackingUser user: withoutLastRecords) {
+			GPSRecord rec = (GPSRecord) sk.createCriteria(GPSRecord.class)
+								.add(Restrictions.eq("user", user))
+								.addOrder(Order.desc("timestamp"))
+								.setMaxResults(1)
+								.uniqueResult();
+			if(rec != null) {
+				user.setLastRecord(rec);
+				sk.saveOrUpdate(user);
+			}										
+		}
 		sk.commit();
 		return true;
 	}

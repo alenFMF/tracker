@@ -3,6 +3,7 @@ package com.tracker.engine;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collector;
@@ -72,7 +73,8 @@ public class TrackerEngine {
 			TrackingUser user = (TrackingUser)sk.createCriteria(TrackingUser.class).add(Restrictions.eq("postingSecret", userSecret)).uniqueResult();
 			if(user == null) {
 				return null;
-			}			
+			}		
+			GPSRecord lastRecord = user.getLastRecord();
 			for (APIGPSLocation loc : req.location) {
 				GPSRecord r = new GPSRecord();
 				r.setUser(user);
@@ -122,8 +124,15 @@ public class TrackerEngine {
 					}
 					r.setDevice(drec);					
 				}
+				if(lastRecord == null) {
+					lastRecord = r;
+				} else {
+					lastRecord = lastRecord.getTimestamp().before(r.getTimestamp()) ? r : lastRecord;
+				}				
 				sk.save(r);
 			}
+			user.setLastRecord(lastRecord);
+			sk.saveOrUpdate(user);
 			sk.commit();			
 		}
 		return new APIBaseResponse();
@@ -139,68 +148,70 @@ public class TrackerEngine {
 			if(tokenUser == null) {
 				return new APITrackQueryResponse("AUTH_ERROR", "");
 			}
-			Criteria c = sk.createCriteria(GPSRecord.class);
-			c.createAlias("device", "Device");
-			c.createAlias("user", "User");
 			
-//			if(tokenUser.getAdmin()) {
-//				if (req.userIds != null && !req.userIds.isEmpty()) {
-//					c.add(Restrictions.in("User.userId", req.userIds));		
-//				} else {  // get admins track
-//					c.add(Restrictions.eq("User.userId", tokenUser.getUserId()));
-//				}		
-//			} else {
-//				c.add(Restrictions.eq("User.userId", tokenUser.getUserId()));
-//			}
-			
+			Criteria c = null;
 			boolean isPersonalQuery = true;
-			if (req.userIds != null && !req.userIds.isEmpty() && (tokenUser.getProvider() != null || tokenUser.getAdmin())) {
-				c.add(Restrictions.in("User.userId", req.userIds));		
-				isPersonalQuery = false;
-			} else {  // get admins track
-				c.add(Restrictions.eq("User.userId", tokenUser.getUserId()));
-				isPersonalQuery = true;
-			}		
-			
-			
-			
-//			if (req.deviceIds != null && !req.deviceIds.isEmpty()) {
-//				c.add(Restrictions.in("Device.uuid", req.deviceIds));
-//			} 
-//			if (req.userIds != null && !req.userIds.isEmpty()) {
-//				c.createAlias("user", "User");
-//				c.add(Restrictions.in("User.userId", req.userIds));
-////				criteriaCount++;
-//			}
+			if(req.lastPositionsOnly == null || req.lastPositionsOnly == false) {  // full query
+				c = sk.createCriteria(GPSRecord.class);
+				c.createAlias("device", "Device");
+				c.createAlias("user", "User");
+						
+				if (req.userIds != null && !req.userIds.isEmpty() && (tokenUser.getProvider() != null || tokenUser.getAdmin())) {
+					c.add(Restrictions.in("User.userId", req.userIds));		
+					isPersonalQuery = false;
+				} else {  // get admins track
+					c.add(Restrictions.eq("User.userId", tokenUser.getUserId()));
+					isPersonalQuery = true;
+				}		
+							
+				if(req.requiredAccuracy != null && req.requiredAccuracy > 0) {
+					c.add(Restrictions.le("accuracy", req.requiredAccuracy));
+				}
+				
 
-//			if (req.organizationGroup != null) {
-//				c.createAlias("user", "User");
-//				c.add(Restrictions.in("User.userId", req.userIds));	
-//				criteriaCount++;
-//			}
-			
-			
-			if(req.requiredAccuracy != null && req.requiredAccuracy > 0) {
-				c.add(Restrictions.le("accuracy", req.requiredAccuracy));
+				c.add(Restrictions.ge("timestamp", req.startDate))
+				 .add(Restrictions.le("timestamp", req.endDate));
+				
+				c.setProjection( Projections.projectionList()
+				        .add( Projections.property("timestamp"), "timestamp" )
+				        .add( Projections.property("longitude"), "longitude" )
+				        .add( Projections.property("latitude"), "latitude" )
+				        .add( Projections.property("speed"), "speed" )
+				        .add( Projections.property("heading"), "heading" )
+				        .add( Projections.property("Device.uuid"), "deviceId" )
+				        .add( Projections.property("User.userId"), "userId" )
+				    );
+				
+				c.addOrder(Order.asc("timestamp"));
+				c.setResultTransformer(Transformers.aliasToBean(TableSample.class));
+			} else {  // lastPositions only
+				isPersonalQuery = false; 
+				c = sk.createCriteria(TrackingUser.class, "User");
+				c.createAlias("lastRecord", "Record");
+				c.createAlias("Record.device", "Device");
+						
+							
+				if(req.requiredAccuracy != null && req.requiredAccuracy > 0) {
+					c.add(Restrictions.le("accuracy", req.requiredAccuracy));
+				}
+				
+				c.add(Restrictions.isNotNull("User.lastRecord"));
+				
+				c.setProjection( Projections.projectionList()
+				        .add( Projections.property("Record.timestamp"), "timestamp" )
+				        .add( Projections.property("Record.longitude"), "longitude" )
+				        .add( Projections.property("Record.latitude"), "latitude" )
+				        .add( Projections.property("Record.speed"), "speed" )
+				        .add( Projections.property("Record.heading"), "heading" )
+				        .add( Projections.property("Device.uuid"), "deviceId" )
+				        .add( Projections.property("User.userId"), "userId" )
+				    );
+				
+				c.setResultTransformer(Transformers.aliasToBean(TableSample.class));				
 			}
 			
-			c.add(Restrictions.ge("timestamp", req.startDate))
-			 .add(Restrictions.le("timestamp", req.endDate));
-			
-			c.setProjection( Projections.projectionList()
-			        .add( Projections.property("timestamp"), "timestamp" )
-			        .add( Projections.property("longitude"), "longitude" )
-			        .add( Projections.property("latitude"), "latitude" )
-			        .add( Projections.property("speed"), "speed" )
-			        .add( Projections.property("heading"), "heading" )
-			        .add( Projections.property("Device.uuid"), "deviceId" )
-			        .add( Projections.property("User.userId"), "userId" )
-			    );
-			
-			c.addOrder(Order.asc("timestamp"));
-			c.setResultTransformer(Transformers.aliasToBean(TableSample.class));
-			
 			List<TableSample> records = c.list();	
+			
 			Map<Pair<String, String>, List<TableSample>> sampleMap = (Map<Pair<String, String>, List<TableSample>>)records.stream()
 				.collect(Collectors.groupingBy(x -> Pair.of(x.userId, x.deviceId)));
 			
@@ -208,7 +219,6 @@ public class TrackerEngine {
 			
 			List<APITrackDetail> trackList = new ArrayList<APITrackDetail>();
 			
-			// TODO: implement interval check and admin propagation
 			Date now = new Date();
 			
 			// to bi moralo biti Map<String, List<Interval>>, preslikava user -> dovoljeni intervali
@@ -298,4 +308,20 @@ public class TrackerEngine {
 		}
 		return new APIBaseResponse();
 	}
+
+//	public APITrackQueryResponse lastPositions(APILastRecordQuery req) {
+//		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
+//			if(req.token == null) {
+//				return new APITrackQueryResponse("AUTH_TOKEN_MISSING", "");
+//			}			
+//			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
+//			if(tokenUser == null) {
+//				return new APITrackQueryResponse("AUTH_ERROR", "");
+//			}		
+//			Date now = new Date();
+//			Map<String, String> tmpMap = GroupEngine.allowedUsersForAdminToSee(sk, tokenUser, null, now);
+//			List<String> allowedUsers = new LinkedList<String>(tmpMap.keySet());
+//			return null;
+//		}
+//	}
 }
