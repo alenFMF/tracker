@@ -6,6 +6,7 @@ import com.tracker.db.GPSRecord;
 
 public class APITrackSample {
 	public Date timestamp;
+	public Date recorded;
 	public double longitude;
 	public double latitude;
 	public double speed;
@@ -15,18 +16,20 @@ public class APITrackSample {
 	public APITrackSample() {}
 	
 	public APITrackSample(GPSRecord rec) {
-		this.timestamp = rec.timestamp;
-		this.longitude = rec.longitude;
-		this.latitude = rec.latitude;
-		this.speed = rec.speed;
-		this.heading = rec.heading;
+		this.timestamp = rec.getTimestamp();
+		this.longitude = rec.getLongitude();
+		this.latitude = rec.getLatitude();
+		this.speed = rec.getSpeed();
+		this.heading = rec.getHeading();
+		this.recorded = rec.getRecorded();
 	}
 	
-	public APITrackSample(Date timestamp, double longitude, double latitude, double speed, double heading, Integer stopDuration) {
+	public APITrackSample(Date timestamp, Date recorded, double longitude, double latitude, double speed, double heading, Integer stopDuration) {
 		this.timestamp = timestamp;
 		this.longitude = longitude;
 		this.latitude = latitude;
 		this.speed = speed;
 		this.heading = heading;		
+		this.recorded = recorded;
 	}
 }

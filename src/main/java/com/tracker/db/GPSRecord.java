@@ -13,6 +13,7 @@ import javax.persistence.Table;
 public class GPSRecord extends BaseEntity {
 	// Time
 	public Date timestamp;
+	public Date recorded;
 	
 	// Coords
 	public double speed;
@@ -126,6 +127,16 @@ public class GPSRecord extends BaseEntity {
 	public void setDevice(DeviceRecord device) {
 		this.device = device;
 	}
+
+	public Date getRecorded() {
+		return recorded;
+	}
+
+	public void setRecorded(Date recorded) {
+		this.recorded = recorded;
+	}
+	
+	
 	
 	// Altitude
 //	public double altitude_accuracy;   //

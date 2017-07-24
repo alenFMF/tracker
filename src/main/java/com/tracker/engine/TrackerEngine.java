@@ -74,6 +74,7 @@ public class TrackerEngine {
 			if(user == null) {
 				return null;
 			}		
+			Date now = new Date();
 			GPSRecord lastRecord = user.getLastRecord();
 			for (APIGPSLocation loc : req.location) {
 				GPSRecord r = new GPSRecord();
@@ -84,6 +85,7 @@ public class TrackerEngine {
 				r.setLatitude(loc.coords.latitude);
 				r.setAccuracy(loc.coords.accuracy);
 				r.setHeading(loc.coords.heading);
+				r.setRecorded(now);
 				if(loc.coords.altitude != null) {
 					AltitudeRecord ar = new AltitudeRecord();
 					ar.setAltitude(loc.coords.altitude);
@@ -174,6 +176,7 @@ public class TrackerEngine {
 				
 				c.setProjection( Projections.projectionList()
 				        .add( Projections.property("timestamp"), "timestamp" )
+				        .add( Projections.property("Record.recorded"), "recorded" )
 				        .add( Projections.property("longitude"), "longitude" )
 				        .add( Projections.property("latitude"), "latitude" )
 				        .add( Projections.property("speed"), "speed" )
@@ -199,6 +202,7 @@ public class TrackerEngine {
 				
 				c.setProjection( Projections.projectionList()
 				        .add( Projections.property("Record.timestamp"), "timestamp" )
+				        .add( Projections.property("Record.recorded"), "recorded" )
 				        .add( Projections.property("Record.longitude"), "longitude" )
 				        .add( Projections.property("Record.latitude"), "latitude" )
 				        .add( Projections.property("Record.speed"), "speed" )
@@ -251,7 +255,7 @@ public class TrackerEngine {
 				det.samples = e.getValue()
 								.stream()
 								.map(el -> 
-								    new APITrackSample(el.timestamp, el.longitude, el.latitude, el.speed, el.heading,null))
+								    new APITrackSample(el.timestamp, el.recorded, el.longitude, el.latitude, el.speed, el.heading,null))
 								.collect(Collectors.toList());
 				
 				trackList.add(det);
@@ -266,6 +270,7 @@ public class TrackerEngine {
 
 	public static class TableSample {
 		public Date timestamp;
+		public Date recorded;
 		public double longitude;
 		public double latitude;
 		public double speed;
@@ -284,7 +289,7 @@ public class TrackerEngine {
 			if(regis == null) return null;
 			DeviceRecord drec = regis.getDevice();
 			if(drec == null) return null;
-			
+			Date now = new Date();
 			for (APICoords2 loc : req) {
 				GPSRecord r = new GPSRecord();
 				r.setUser(user);
@@ -294,6 +299,7 @@ public class TrackerEngine {
 				r.setLatitude(loc.lat);
 				r.setHeading(loc.head);
 				r.setAccuracy(loc.accur);
+				r.setRecorded(now);
 				if(loc.alt != null) {
 					AltitudeRecord ar = new AltitudeRecord();
 					ar.setAltitude(loc.alt);
