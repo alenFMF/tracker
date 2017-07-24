@@ -3,16 +3,13 @@ package com.tracker.engine;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
-import org.hibernate.criterion.MatchMode;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Projections;
 import org.hibernate.criterion.Restrictions;
@@ -23,8 +20,6 @@ import org.springframework.stereotype.Component;
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.APITest1;
 import com.tracker.apientities.APITest2;
-import com.tracker.apientities.notifications.APIDeviceQuery;
-import com.tracker.apientities.notifications.APIDeviceResponse;
 import com.tracker.apientities.tracks.APICoords2;
 import com.tracker.apientities.tracks.APIGPSLocation;
 import com.tracker.apientities.tracks.APITrackDetail;
@@ -176,7 +171,7 @@ public class TrackerEngine {
 				
 				c.setProjection( Projections.projectionList()
 				        .add( Projections.property("timestamp"), "timestamp" )
-				        .add( Projections.property("Record.recorded"), "recorded" )
+				        .add( Projections.property("recorded"), "recorded" )
 				        .add( Projections.property("longitude"), "longitude" )
 				        .add( Projections.property("latitude"), "latitude" )
 				        .add( Projections.property("speed"), "speed" )
