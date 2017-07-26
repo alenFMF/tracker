@@ -1211,4 +1211,63 @@ public class GroupEngine {
 		sk.commit();
 		return true;
 	}
+
+	public static List<OrganizationGroup> subgroupTree(SessionKeeper sk, OrganizationGroup group) {
+		if(group == null) {
+			return null;
+		}
+		
+		String provider = group.getProvider();
+		if(provider == null) {
+			List<OrganizationGroup> res =  new LinkedList<OrganizationGroup>();
+			res.add(group);
+			return res;
+		}
+		@SuppressWarnings("unused")
+		List<OrganizationGroup> providerGroups = sk.createCriteria(OrganizationGroup.class).add(Restrictions.eq("provider", provider)).list();
+		
+		// mapping groupId -> group
+		Map<String, OrganizationGroup> toGroup = new HashMap<String, OrganizationGroup>();
+		for(OrganizationGroup grp: providerGroups) {
+			toGroup.put(grp.getGroupId(), grp);
+		}
+		
+		// mapping groupId -> list of children group id
+		// init
+		Map<String, List<String>> toChildren = new HashMap<String, List<String>>();
+		for(OrganizationGroup grp: providerGroups) {
+			if(!toChildren.containsKey(grp.getGroupId())) {
+				toChildren.put(grp.getGroupId(), new LinkedList<String>());
+			}
+		}
+		
+		// mapping
+		for(OrganizationGroup grp: providerGroups) {
+			OrganizationGroup parent = grp.getParentProviderGroup();
+			if(parent != null) {
+				toChildren.get(parent.getGroupId()).add(grp.getGroupId());
+			}
+		}
+		
+		
+		Map<String, OrganizationGroup> result = new HashMap<String, OrganizationGroup>();
+		LinkedList<String> stack = new LinkedList<String>();
+		stack.push(group.getGroupId());
+		while(stack.size() > 0) {
+			String tmpGroupId = stack.pop();				
+			
+			if(result.containsKey(tmpGroupId)) {
+				continue;
+			} else {
+				OrganizationGroup currentGroup = toGroup.get(tmpGroupId);
+				result.put(tmpGroupId, currentGroup);
+				if(toChildren.containsKey(tmpGroupId)) {
+					for(String child: toChildren.get(tmpGroupId)) {
+						stack.push(child);
+					}					
+				}								
+			}
+		}		
+		return new LinkedList<OrganizationGroup>(result.values());
+	}
 }

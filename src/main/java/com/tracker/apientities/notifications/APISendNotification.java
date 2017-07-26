@@ -4,13 +4,14 @@ import java.util.List;
 
 public class APISendNotification {
 	public String token;
-	public List<APIUsers> recipients; 
-	public String to;  // in case of an EMAIL
-	public String group;
+	public List<APIUsers> recipients;   // for type==NOTIFICATION only
+	public String to;  // for type EMAIL only
+	public String toGroup;  // relevant only if type==GROUP_NOTIFICATION
+	public String fromGroup;  // sender must be admin of a group
 	public String message;
 	public String messageType;
-	public String title;   // subject for email
-	public String type;
+	public String title;   // subject for email, title for notification
+	public String type; // see NotificationEngine
 	public Integer travelOrderId;
 	public Integer taskGoalId;
 }

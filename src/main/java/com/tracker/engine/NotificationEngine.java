@@ -3,6 +3,7 @@ package com.tracker.engine;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
@@ -30,6 +31,7 @@ import com.tracker.db.DeviceRecord;
 import com.tracker.db.EventMessage;
 import com.tracker.db.MessageBody;
 import com.tracker.db.NotificationRegistration;
+import com.tracker.db.OrganizationGroup;
 import com.tracker.db.TrackingUser;
 import com.tracker.db.Vehicle;
 import com.tracker.utils.SessionKeeper;
@@ -187,7 +189,20 @@ public class NotificationEngine {
 			return res;
 		}
 	}
-
+	
+	public static OrganizationGroup processMessageGroup(SessionKeeper sk, TrackingUser user, String groupName) {
+		if(groupName != null) {
+			String provider = user.getProvider();
+			if(provider != null) {
+				if(groupName.startsWith("#")) {
+					groupName = provider + groupName;
+				}
+			}
+			return (OrganizationGroup) sk.createCriteria(OrganizationGroup.class).add(Restrictions.eq("groupId", groupName)).uniqueResult();
+		}
+		return null;		
+	}
+	
 	public APISendNotificationResponse notify(APISendNotification req) {
 		
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
@@ -210,6 +225,10 @@ public class NotificationEngine {
 			Date now = new Date();
 			boolean send = false;
 			if(req.type.equals("NOTIFICATION")) {
+				OrganizationGroup fromGroup = processMessageGroup(sk, tokenUser, req.fromGroup);
+				if(req.fromGroup != null && fromGroup == null) {
+					return new APISendNotificationResponse("WRONG_FROM_GROUP","Group '" + req.fromGroup + "' does not exist.");					
+				}
 				MessageBody mBody = null;
 				if(req.message != null) {
 					mBody = new MessageBody();
@@ -260,6 +279,9 @@ public class NotificationEngine {
 					msg.setTimestamp(now);
 					msg.setTimeRecorded(now);
 					msg.setBody(mBody);
+					if(fromGroup != null) {
+						msg.setSenderGroup(fromGroup);
+					}
 					APINotificationStatus stat = new APINotificationStatus(user, "OK", "");
 					records.add(Pair.of(stat, msg));
 				}
@@ -303,14 +325,37 @@ public class NotificationEngine {
 				return res;
 			}
 			
-			if(req.type.equals("GROUP_NOTIFICATION")) {
+			if(req.type.equals("GROUP_NOTIFICATION")) {  // notification sent to whole group. Can be sent by admin or user
 				EventMessage msg = new EventMessage();
 				msg.setSender(tokenUser);
-				msg.setContextGroupId(req.group);
+//				msg.setContextGroupId(req.toGroup);
+				OrganizationGroup senderGroup = processMessageGroup(sk, tokenUser, req.fromGroup);
+				if(req.fromGroup != null && senderGroup == null) {
+					return new APISendNotificationResponse("WRONG_FROM_GROUP","Group '" + req.fromGroup + "' does not exist.");					
+				}
+				if(req.toGroup == null) {
+					return new APISendNotificationResponse("NO_GROUP","GROUP_NOTIFICATION requires toGroup parameter or group does not exist.");
+				}								
+				OrganizationGroup receiverGroup = processMessageGroup(sk, tokenUser, req.toGroup);
+				if(req.fromGroup != null && senderGroup == null) {
+					return new APISendNotificationResponse("WRONG_TO_GROUP","Group '" + req.toGroup + "' does not exist.");					
+				}
+				
+				MessageBody mBody = null;
+				if(req.message != null) {
+					mBody = new MessageBody();
+					mBody.setMessageType(req.messageType == null ? req.type : req.messageType);
+					mBody.setMessage(req.message);
+					msg.setBody(mBody);
+					sk.save(mBody);
+				}
+				
 				msg.setSent(true);
 				msg.setTimestamp(now);
 				msg.setTimeRecorded(now);
 				msg.setType(req.type);		
+				msg.setSenderGroup(senderGroup);
+				msg.setReceiverGroup(receiverGroup);
 				sk.save(msg);
 				sk.commit();
 				APINotificationStatus stat = new APINotificationStatus(tokenUser, "OK", "");
@@ -359,14 +404,22 @@ public class NotificationEngine {
 				msg.setTimeRecorded(now);
 				msg.setType(req.type);
 				msg.setTitle(req.title);
-				
+				OrganizationGroup senderGroup = processMessageGroup(sk, tokenUser, req.fromGroup);  
+				msg.setSenderGroup(senderGroup);
 				MessageBody mBody = null;
 				if(req.message != null) {
 					mBody = new MessageBody();
 					mBody.setMessageType(req.messageType == null ? req.type : req.messageType);
+					mBody.setMessage(req.message);
 					emailService.send(req.to, req.title, req.message, req.messageType);
 				}
 				
+				TrackingUser user = authEngine.getUser(sk, req.to, tokenUser.getProvider());
+				if(user != null) {
+					msg.setReceiver(user);
+				} else {
+					msg.setEmailTo(req.to);
+				}
 				sk.save(mBody);
 				msg.setBody(mBody);				
 				sk.save(msg);
@@ -394,9 +447,29 @@ public class NotificationEngine {
 			if(req.fromDate == null) {
 				return new APINotificationsResponse("DATE_ERROR", "fromDate must be non-null.");
 			}
-			Criteria crit1 = sk.createCriteria(EventMessage.class)
-					.add(Restrictions.eq("sender", tokenUser))
-					.add(Restrictions.ge("timestamp", req.fromDate));
+			OrganizationGroup forGroup = null;			
+			if(req.forGroup != null) {
+				String provider = tokenUser.getProvider();
+				String groupName = req.forGroup;
+				if(provider != null) {
+					if(groupName.startsWith("#")) {
+						groupName = provider + groupName;
+					}
+				}
+				forGroup = (OrganizationGroup) sk.createCriteria(OrganizationGroup.class).add(Restrictions.eq("groupId", groupName)).uniqueResult();
+				if(forGroup == null) {
+					return new APINotificationsResponse("WRONG_GROUP","Group '" + req.forGroup + "' does not exist.");					
+				}		
+				//check if user admin in group
+			}
+			
+			Criteria crit1 = sk.createCriteria(EventMessage.class);
+			if(forGroup == null) {
+					crit1.add(Restrictions.eq("sender", tokenUser));
+			} else {
+					crit1.add(Restrictions.eq("senderGroup", forGroup));
+			}
+			crit1.add(Restrictions.ge("timestamp", req.fromDate));
 			if(req.untilDate != null) {
 					crit1.add(Restrictions.le("timestamp", req.untilDate));		
 			}
@@ -409,9 +482,25 @@ public class NotificationEngine {
 			}
 			APINotificationsResponse res = new APINotificationsResponse();
 			res.sent = sentResp;
-			Criteria crit2 = sk.createCriteria(EventMessage.class)
-					.add(Restrictions.eq("receiver", tokenUser))
-					.add(Restrictions.ge("timestamp", req.fromDate));
+			
+			
+			Criteria crit2 = sk.createCriteria(EventMessage.class);
+			if(forGroup == null) {
+					crit2.add(Restrictions.eq("receiver", tokenUser));
+			} else {
+				crit2.createAlias("sender", "Sender");
+				Date now = new Date();
+				Map<String, String> tmpMap = GroupEngine.allowedUsersForAdminToSee(sk, tokenUser, null, now);
+				List<OrganizationGroup> allowedGroups = GroupEngine.subgroupTree(sk, forGroup);
+				crit2.add(Restrictions.disjunction()
+						.add(Restrictions.conjunction()
+								.add(Restrictions.in("Sender.userId", tmpMap.keySet()))
+								.add(Restrictions.isNull("receiverGroup"))
+						 )
+						.add(Restrictions.in("receiverGroup", allowedGroups))
+				);										
+			}
+			crit2.add(Restrictions.ge("timestamp", req.fromDate));
 			if(req.untilDate != null) {
 					crit2.add(Restrictions.le("timestamp", req.untilDate));		
 			}

@@ -16,6 +16,10 @@ public class APINotificationMessage {
 	public String travelOrderid;
 	public Boolean sent;
 	public String link;
+	public String type;
+	public String sentTo;
+	public String senderGroup;
+	public String receiverGroup;
 	
 	public APINotificationMessage() {}
 	
@@ -26,18 +30,28 @@ public class APINotificationMessage {
 		this.title = em.getTitle();
 		if(em.getBody() != null) {
 			this.message = em.getBody().getMessage();
-			this.messageType = em.getBody().getMessage();
+			this.messageType = em.getBody().getMessageType();
 		}
 		this.senderId = em.getSender().getUserId();
 		if(em.getReceiver() != null) {
 			this.receiverId = em.getReceiver().getUserId();
 		}
+		if(em.getSenderGroup() != null) {
+			this.senderGroup = em.getSenderGroup().getGroupId();
+		}
+		if(em.getReceiverGroup() != null) {
+			this.receiverGroup = em.getReceiverGroup().getGroupId();
+		}
 		if(em.getTravelOrder() != null) {
 			this.travelOrderid = em.getTravelOrder().getTravelOrderId();
 		}
 		this.sent = em.getSent();
-		if(em.getBody().getLink() != null && linkRoot != null) {
+		if(em.getBody() != null && em.getBody().getLink() != null && linkRoot != null) {
 			this.link = linkRoot + em.getBody().getLink();
+		}
+		this.type = em.getType();
+		if(this.type.equals("EMAIL_TEXT")) {
+			this.sentTo = em.getEmailTo();
 		}
 	}
 }

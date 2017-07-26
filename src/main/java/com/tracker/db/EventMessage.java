@@ -11,10 +11,15 @@ public class EventMessage extends BaseEntity {
 	public Date timeRecorded;
 	
 	public String type;   
+	
 	@ManyToOne
 	public TrackingUser sender;
 	@ManyToOne
 	public TrackingUser receiver;
+	@ManyToOne
+	public OrganizationGroup senderGroup;
+	@ManyToOne
+	public OrganizationGroup receiverGroup;
 	
 	@ManyToOne
 	public TravelOrder travelOrder;
@@ -23,7 +28,9 @@ public class EventMessage extends BaseEntity {
 
 	public String title;
 	
-	public String contextGroupId;
+//	public String contextGroupId;
+	
+	public String emailTo;
 	
 	@ManyToOne
 	public MessageBody body;
@@ -82,12 +89,31 @@ public class EventMessage extends BaseEntity {
 	public void setTitle(String title) {
 		this.title = title;
 	}
-	public String getContextGroupId() {
-		return contextGroupId;
+//	public String getContextGroupId() {
+//		return contextGroupId;
+//	}
+//	public void setContextGroupId(String contextGroupId) {
+//		this.contextGroupId = contextGroupId;
+//	}
+	public OrganizationGroup getSenderGroup() {
+		return senderGroup;
 	}
-	public void setContextGroupId(String contextGroupId) {
-		this.contextGroupId = contextGroupId;
+	public void setSenderGroup(OrganizationGroup senderGroup) {
+		this.senderGroup = senderGroup;
 	}
+	public OrganizationGroup getReceiverGroup() {
+		return receiverGroup;
+	}
+	public void setReceiverGroup(OrganizationGroup receiverGroup) {
+		this.receiverGroup = receiverGroup;
+	}
+	public String getEmailTo() {
+		return emailTo;
+	}
+	public void setEmailTo(String emailTo) {
+		this.emailTo = emailTo;
+	}	
+	
 }
 
 /* Possible message types:
