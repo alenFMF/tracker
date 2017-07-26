@@ -42,6 +42,16 @@ public class TrackerController {
 	public String testService2(@RequestBody String req) {
 		System.out.println(req);
 		return req;
+	}
+	
+	@RequestMapping(value = "gc", method = RequestMethod.POST)
+	@ResponseBody
+	public String garbageCollect(@RequestBody String pwd) {
+		if ( "tU2l7sNwp00dJIG9pVYV".equals(pwd) )
+			return "Invalid password";
+		System.gc();
+		System.runFinalization();
+		return "ok";
 	}	
 	
 	@RequestMapping(value = "trackPost/{userSecret:.+}", method = RequestMethod.POST)
