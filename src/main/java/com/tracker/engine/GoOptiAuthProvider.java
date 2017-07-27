@@ -36,6 +36,12 @@ public class GoOptiAuthProvider implements IAuthProvider {
 		APIGoOptiAuthentication request = new APIGoOptiAuthentication(username, password);
 		try {
 			APIGoOptiAuthenticationResponse res = restTempl.postForObject(service, request, APIGoOptiAuthenticationResponse.class);
+			if(!res.status.equals("OK")) {
+				AuthenticationObject auth = new AuthenticationObject();
+				auth.setStatus("AUTH_ERROR");
+				auth.setErrorMessage("Status returned: " + res.status);
+				return auth;				
+			}			
 			if(res.isLocked) {
 				AuthenticationObject auth = new AuthenticationObject();
 				auth.setStatus("AUTH_ERROR");

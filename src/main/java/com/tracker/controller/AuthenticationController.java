@@ -139,12 +139,18 @@ public class AuthenticationController {
     }	
     
     public void inputLogger(Object req) {
-		try {
-			
-			logger.info(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(req));
+		try {			
+			logger.info(AuthenticationController.cleanLogs(new ObjectMapper()
+							.writerWithDefaultPrettyPrinter()
+							.writeValueAsString(req))
+					);
 		} catch (Exception e) {
 			logger.error("Error logging json", e);
 		}    	
     }
-	
+    
+    public static String cleanLogs(String s) {
+		return s.replaceAll("\\\"password\\\"\\s*:\\s*\\\"[^\\\"]*\\\"", "\"password\" : \"*********\"")
+		.replaceAll("\\\"notificationToken\\\"\\s*:\\s*\\\"[^\\\"]*\\\"", "\"notificationToken\" : \"*********\"");
+    }	
 }

@@ -12,6 +12,7 @@ import org.hibernate.SessionFactory;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
 import com.tracker.apientities.APIBaseResponse;
@@ -514,4 +515,10 @@ public class NotificationEngine {
 			return res;			
 		}
 	}	
+	
+//	@Scheduled(fixedDelay=2000)
+//	public void doSomething() {
+//		String pass = "neki spredi \"password\":\"neki neki\" neki zadi";
+//	    System.out.println(pass.replaceAll("\\\"password\\\"\\s*:\\s*\\\"[^\\\"]*\\\"", "\"password\" : \"*********\""));
+//	}	
 }

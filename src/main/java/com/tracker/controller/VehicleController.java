@@ -66,10 +66,14 @@ public class VehicleController {
     }	
     
     public void inputLogger(Object req) {
-		try {
-			logger.info(new ObjectMapper().writerWithDefaultPrettyPrinter().writeValueAsString(req));
+		try {			
+			logger.info(AuthenticationController.cleanLogs(new ObjectMapper()
+							.writerWithDefaultPrettyPrinter()
+							.writeValueAsString(req))
+					);
 		} catch (Exception e) {
 			logger.error("Error logging json", e);
 		}    	
-    }	
+    }
+
 }

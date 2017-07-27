@@ -472,6 +472,12 @@ public class AuthenticationEngine {
 						.add(Restrictions.ilike("userId", "%" + req.queryString + "%"))
 						.add(Restrictions.ilike("name", "%" + req.queryString + "%"))
 				);
+				String provider = tokenUser.getProvider();
+				if(provider != null) {
+					c.add(Restrictions.eqOrIsNull("provider", provider));
+				} else {
+					c.add(Restrictions.isNull("provider"));
+				}
 				c.setMaxResults(10);
 			} 
 			List<TrackingUser> recs = c.list();	
