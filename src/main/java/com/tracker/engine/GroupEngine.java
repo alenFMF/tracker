@@ -881,8 +881,9 @@ public class GroupEngine {
 					ug.setUser(tokenUser);		
 					ug.setUserAction(new Date());
 				} else {
-					ug.setGroupUser(user);
+					ug.setGroupUser(tokenUser);
 					ug.setGroupAction(new Date());
+					ug.setUser(user);
 				}
 				ug.setFromDate(asgn.fromDate);
 				ug.setUntilDate(asgn.untilDate);
