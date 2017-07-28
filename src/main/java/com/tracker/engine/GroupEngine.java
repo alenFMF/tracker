@@ -890,6 +890,12 @@ public class GroupEngine {
 				ug.setGroupRole(asgn.groupRole);
 				ug.setInviteType(asgn.inviteType);
 				ug.setGrant(asgn.grant);
+				if(ug.getGrant().equals("DENY")) {
+					ug.setAccepted(true);
+					Date now = new Date();
+					ug.setTimestamp(now);
+					ug.setUserAction(now);
+				}
 				ug.setPeriodic(asgn.periodic);
 				ug.setRepeatTimes(asgn.repeatTimes);
 				sk.save(ug);
