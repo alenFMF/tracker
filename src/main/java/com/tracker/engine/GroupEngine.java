@@ -843,7 +843,7 @@ public class GroupEngine {
 					statuses.add("USER_CANNOT_PROPOSE_ADMIN_ROLE");
 					continue;
 				}
-				if(user.getUserId() != tokenUser.getUserId() && asgn.inviteType != "GROUP") {
+				if(user.getUserId() != tokenUser.getUserId() && !asgn.inviteType.equals("GROUP")) {
 					statuses.add("WRONG_USERID");  // if user invite, then userId must match tokenUser
 					continue;					
 				}
