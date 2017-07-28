@@ -417,6 +417,7 @@ public class GroupEngine {
 			}
 		}
 		List<GroupRoles> result = outRoles.stream()   // sort by description
+			.filter(x -> x.isAdminRole() || x.isUserRole())  // filter out empty roles
 			.sorted(Comparator.comparing(x -> x.getGroup().getDescription()))
 			.collect(Collectors.toList());
 		if(primaryGroup != null) {
@@ -895,9 +896,10 @@ public class GroupEngine {
 					Date now = new Date();
 					ug.setTimestamp(now);
 					ug.setUserAction(now);
+				} else {
+					ug.setPeriodic(asgn.periodic);
+					ug.setRepeatTimes(asgn.repeatTimes);					
 				}
-				ug.setPeriodic(asgn.periodic);
-				ug.setRepeatTimes(asgn.repeatTimes);
 				sk.save(ug);
 				statuses.add("OK");
 			}
