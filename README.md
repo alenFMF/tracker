@@ -49,7 +49,4 @@ grant all privileges on database gooptigps to goopti;
 ---
 
 Projekt sofinancirata Republika Slovenija in Evropska unija iz Evropskega socialnega sklada. 
-
-
-
-
+![Logo](https://github.com/jborlinic/strojno_ucenje/blob/master/logo.png)
