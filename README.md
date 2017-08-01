@@ -44,3 +44,12 @@ grant all privileges on database gooptigps to goopti;
     * Select Run with Jetty (on the bottom of the list)
 
 
+
+
+
+-----
+
+
+Projekt sofinancirata Republika Slovenija in Evropska unija iz [Evropskega socialnega sklada](http://www.eu-skladi.si/). 
+
+![Logo](https://github.com/jborlinic/strojno_ucenje/blob/master/logo.png)
