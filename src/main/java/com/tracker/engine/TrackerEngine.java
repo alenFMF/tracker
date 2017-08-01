@@ -302,7 +302,14 @@ public class TrackerEngine {
 					sk.save(ar);
 				}
 				
-				r.setDevice(drec);					
+				r.setDevice(drec);	
+				if(loc.batLev != null) {
+					BatteryRecord bat = new BatteryRecord();
+					bat.setBatteryCharging(loc.batChg);
+					bat.setBatteryLevel(loc.batLev);
+					r.setBattery(bat);
+					sk.save(bat);					
+				}
 				sk.save(r);
 			}
 			sk.commit();			

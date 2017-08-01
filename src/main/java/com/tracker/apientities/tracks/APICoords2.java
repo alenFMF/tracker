@@ -13,4 +13,6 @@ public class APICoords2 {
 	public Double head;
 	public Date time;
 	public Double accur;
+	public Double batLev;
+	public Boolean batChg;
 }

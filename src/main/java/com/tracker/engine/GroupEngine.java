@@ -934,15 +934,16 @@ public class GroupEngine {
 				c.add(Restrictions.in("id", req.confirmLinks));
 				c.createAlias("user", "User");
 				c.createAlias("group", "Group");
+				c.add(Restrictions.isNull("accepted"));
+				
 				
 				@SuppressWarnings("unchecked")
 				List<UserGroupAssignment> toConfirm = c.list();
-				
+				Date now = new Date();
 				for(UserGroupAssignment uga : toConfirm) {
 					if(uga.inviteType.equals("GROUP")) {
-						if(uga.getUser().getUserId().equals(user.getUserId())) {
+						if(uga.getUser() == user) {
 							uga.setAccepted(true);
-							Date now = new Date();
 							uga.setTimestamp(now);
 							uga.setUserAction(now);
 							sk.saveOrUpdate(uga);
@@ -954,16 +955,16 @@ public class GroupEngine {
 						}
 					} else { // invite type eq "USER"
 						OrganizationGroup group = uga.getGroup();
-						List<UserGroupAssignment> assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), group.getGroupId(), new Date(), false, true, user.getProvider());
-						List<GroupRoles> roles = GroupEngine.rolesForUserInGroupsAtTime(assignments, user, group.getGroupId(), null);
+						List<UserGroupAssignment> assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), group.getGroupId(), now, false, true, user.getProvider());
+						List<GroupRoles> roles = GroupEngine.rolesForUserInGroupsAtTime(assignments, user, group.getGroupId(), now);
 						if(roles == null || roles.isEmpty() || !roles.get(0).isAdminRole()) {
 							confirmStatuses.add("USER_NOT_GROUP_ADMIN");
 							continue;
 						}
 						uga.setAccepted(true);
-						Date now = new Date();
 						uga.setTimestamp(now);
 						uga.setGroupAction(now);
+						uga.setGroupUser(user);
 						sk.saveOrUpdate(uga);
 						confirmStatuses.add("OK");						
 						continue;
@@ -978,36 +979,49 @@ public class GroupEngine {
 				c.add(Restrictions.in("id", req.rejectLinks));
 				c.createAlias("user", "User");
 				c.createAlias("group", "Group");
+				c.add(Restrictions.isNull("accepted"));
 	
 				@SuppressWarnings("unchecked")
 				List<UserGroupAssignment> toReject = c.list();
 				
+				Date now = new Date();
 				for(UserGroupAssignment uga : toReject) {
+					OrganizationGroup group = uga.getGroup();
+					boolean isGroupAdmin = true;
+					List<UserGroupAssignment> assignments = GroupEngine.usersGroupAssignments(sk, user.getUserId(), group.getGroupId(), now, false, true, user.getProvider());
+					List<GroupRoles> roles = GroupEngine.rolesForUserInGroupsAtTime(assignments, user, group.getGroupId(), now);
+					if(roles == null || roles.isEmpty() || !roles.get(0).isAdminRole()) {
+						isGroupAdmin = false;
+					}
+					
 					if(uga.inviteType.equals("GROUP")) {
-						if(uga.getUser().getUserId().equals(user.getUserId())) {
+						if(uga.getUser() == user) {  // invited user rejects
 							uga.setAccepted(false);
-							Date now = new Date();
-	//						uga.setTimestamp(now);
 							uga.setUserAction(now);
 							sk.saveOrUpdate(uga);
 							rejectStatuses.add("OK");						
 							continue;
-						} else {
-							rejectStatuses.add("DENIED");
+						} else {   // group admin rejects invitation from another group admin
+							if(!isGroupAdmin) {
+								confirmStatuses.add("USER_NOT_GROUP_ADMIN");
+								continue;
+							}
+							uga.setAccepted(false);
+							uga.setGroupUser(user); // user who rejected is recorded, the one who invited is removed
+							sk.saveOrUpdate(uga);    
+							rejectStatuses.add("OK");						
 							continue;
 						}
 					} else { // invite type eq "USER"
-						OrganizationGroup group = uga.getGroup();
-						List<UserGroupAssignment> assignments = usersGroupAssignments(sk, user.getUserId(), group.getGroupId(), new Date(), false, true, null);
-						List<GroupRoles> roles = rolesForUserInGroupsAtTime(assignments, user, group.getGroupId(), null);
-						if(roles == null || roles.isEmpty() || !roles.get(0).isAdminRole()) {
+						if(user != uga.getUser() && !isGroupAdmin) {
 							rejectStatuses.add("USER_NOT_GROUP_ADMIN");
 							continue;
 						}
 						uga.setAccepted(false);
-						Date now = new Date();
-	//					uga.setTimestamp(now);
-						uga.setGroupAction(now);
+						if(isGroupAdmin) {
+							uga.setGroupUser(user);
+							uga.setGroupAction(now);
+						} 
 						sk.saveOrUpdate(uga);
 						rejectStatuses.add("OK");						
 						continue;
