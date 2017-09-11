@@ -152,6 +152,7 @@ public class TrackerEngine {
 				c = sk.createCriteria(GPSRecord.class);
 				c.createAlias("device", "Device");
 				c.createAlias("user", "User");
+				c.createAlias("battery", "Battery");
 						
 				if (req.userIds != null && !req.userIds.isEmpty() && (tokenUser.getProvider() != null || tokenUser.getAdmin())) {
 					c.add(Restrictions.in("User.userId", req.userIds));		
@@ -176,8 +177,9 @@ public class TrackerEngine {
 				        .add( Projections.property("latitude"), "latitude" )
 				        .add( Projections.property("speed"), "speed" )
 				        .add( Projections.property("heading"), "heading" )
+				        .add( Projections.property("Battery.batteryLevel"), "batteryLevel")
 				        .add( Projections.property("Device.uuid"), "deviceId" )
-				        .add( Projections.property("User.userId"), "userId" )
+				        .add( Projections.property("User.userId"), "userId" )				        
 				    );
 				
 				c.addOrder(Order.asc("timestamp"));
@@ -202,6 +204,7 @@ public class TrackerEngine {
 				        .add( Projections.property("Record.latitude"), "latitude" )
 				        .add( Projections.property("Record.speed"), "speed" )
 				        .add( Projections.property("Record.heading"), "heading" )
+				        .add( Projections.property("Battery.batteryLevel"), "batteryLevel" )
 				        .add( Projections.property("Device.uuid"), "deviceId" )
 				        .add( Projections.property("User.userId"), "userId" )
 				    );
@@ -250,7 +253,7 @@ public class TrackerEngine {
 				det.samples = e.getValue()
 								.stream()
 								.map(el -> 
-								    new APITrackSample(el.timestamp, el.recorded, el.longitude, el.latitude, el.speed, el.heading,null))
+								    new APITrackSample(el.timestamp, el.recorded, el.longitude, el.latitude, el.speed, el.heading, null, el.batteryLevel))
 								.collect(Collectors.toList());
 				
 				trackList.add(det);
@@ -271,6 +274,7 @@ public class TrackerEngine {
 		public double speed;
 		public double heading;	
 		public int stopDuration; // minutes
+		public Double batteryLevel;
 		public String deviceId;
 		public String userId;
 	}
