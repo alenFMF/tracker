@@ -189,7 +189,7 @@ public class TrackerEngine {
 				c = sk.createCriteria(TrackingUser.class, "User");
 				c.createAlias("lastRecord", "Record");
 				c.createAlias("Record.device", "Device");
-				c.createAlias("battery", "Battery");		
+				c.createAlias("Record.battery", "Battery");		
 							
 				if(req.requiredAccuracy != null && req.requiredAccuracy > 0) {
 					c.add(Restrictions.le("accuracy", req.requiredAccuracy));
