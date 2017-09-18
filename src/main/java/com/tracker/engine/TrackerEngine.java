@@ -291,6 +291,7 @@ public class TrackerEngine {
 			DeviceRecord drec = regis.getDevice();
 			if(drec == null) return null;
 			Date now = new Date();
+			GPSRecord lastRecord = user.getLastRecord();
 			for (APICoords2 loc : req) {
 				GPSRecord r = new GPSRecord();
 				r.setUser(user);
@@ -316,8 +317,17 @@ public class TrackerEngine {
 					r.setBattery(bat);
 					sk.save(bat);					
 				}
+				if(lastRecord == null) {
+					lastRecord = r;
+				} else {
+					lastRecord = lastRecord.getTimestamp().before(r.getTimestamp()) ? r : lastRecord;
+				}					
 				sk.save(r);
-			}
+			}			
+			if(lastRecord != null) {
+				user.setLastRecord(lastRecord);
+				sk.saveOrUpdate(user);
+			}			
 			sk.commit();			
 		}
 		return new APIBaseResponse();
