@@ -128,7 +128,9 @@ public class TrackerEngine {
 				}				
 				sk.save(r);
 			}
-			user.setLastRecord(lastRecord);
+			if(lastRecord != null) {
+				user.setLastRecord(lastRecord);
+			}
 			sk.saveOrUpdate(user);
 			sk.commit();			
 		}
