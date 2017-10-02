@@ -64,7 +64,7 @@ public class NotificationEngine {
 				return new APIBaseResponse("NO_NOTIFICATON_TOKEN","");
 			}
 			String platform = req.device.platform;
-			if(!platform.equals("iOS") && !platform.equals("Android")) {
+			if(!platform.equals("iOS") && !platform.equals("Android") && !platform.equals("iPhone OS")) {
 				return new APIBaseResponse("WRONG_PLATFORM", platform != null ? platform : "null");
 			}
 			Date now = new Date();
@@ -115,7 +115,7 @@ public class NotificationEngine {
 				return "USER_NULL";
 			}					
 			String platform = deviceRecord.platform;
-			if(!platform.equals("iOS") && !platform.equals("Android")) {
+			if(!platform.equals("iOS") && !platform.equals("Android") && !platform.equals("iPhone OS")) {
 				return "WRONG_PLATFORM";
 			}
 			DeviceRecord device = (DeviceRecord)sk.createCriteria(DeviceRecord.class).add(Restrictions.eq("uuid", deviceRecord.uuid)).uniqueResult();

@@ -89,7 +89,7 @@ public class NotificationService {
     }	
     
     public boolean push(String token, String title, String message, String platform) {
-    	if(platform.equals("iOS")) return pushAPNS(token, title, message);
+    	if(platform.equals("iOS") || platform.equals("iPhone OS")) return pushAPNS(token, title, message);
     	if(platform.equals("Android")) return pushGCM(token, title, message);
     	return false;
     }
