@@ -65,6 +65,7 @@ public class NotificationService {
         Message msg = new Message.Builder()
         		.addData("title", title == null ? "" : title)
         		.addData("message", message == null ? "" : message)
+        		.addData("largeIcon", "push_notification_icon")
         		.build();
         try {
                 Result result = gcmService.send(msg, token, retries);

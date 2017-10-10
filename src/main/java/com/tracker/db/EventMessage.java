@@ -11,6 +11,7 @@ public class EventMessage extends BaseEntity {
 	public Date timeRecorded;
 	
 	public String type;   
+	public String senderNameToBeDisplayed;
 	
 	@ManyToOne
 	public TrackingUser sender;
@@ -113,7 +114,12 @@ public class EventMessage extends BaseEntity {
 	public void setEmailTo(String emailTo) {
 		this.emailTo = emailTo;
 	}	
-	
+	public String getSenderNameToBeDisplayed() {
+		return senderNameToBeDisplayed;
+	}
+	public void setSenderNameToBeDisplayed(String senderNameToBeDisplayed) {
+		this.senderNameToBeDisplayed = senderNameToBeDisplayed;
+	}		
 }
 
 /* Possible message types:

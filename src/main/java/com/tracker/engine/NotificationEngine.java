@@ -12,8 +12,12 @@ import org.hibernate.SessionFactory;
 import org.hibernate.criterion.Order;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.http.HttpStatus;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import com.tracker.apientities.APIBaseResponse;
 import com.tracker.apientities.notifications.APIDevice;
@@ -53,6 +57,9 @@ public class NotificationEngine {
 	
 	@Autowired 
 	private EmailService emailService;
+	
+	@Value("#{generalProperties.gooptiAuthCheckNotifToken}")
+	private String service;
 	
 	public APIBaseResponse register(APIDeviceRegister req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
@@ -209,7 +216,14 @@ public class NotificationEngine {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
 			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
 			if(tokenUser == null) {
-				return new APISendNotificationResponse("AUTH_ERROR", "");
+		        String url = UriComponentsBuilder.fromHttpUrl(service)
+		                .queryParam("push_notification_token", req.token)
+		                .build().encode().toUriString();
+		        
+				 //TODO - check if it is ok
+		        RestTemplate restTempl = new RestTemplate();
+		        HttpStatus result = restTempl.getForObject(url, HttpStatus.class);
+				if(!result.equals(HttpStatus.OK)) return new APISendNotificationResponse("AUTH_ERROR", "");
 			}	
 			if(req.type == null) {
 				return new APISendNotificationResponse("TYPE_MISSING", "");
@@ -280,6 +294,7 @@ public class NotificationEngine {
 					msg.setTimestamp(now);
 					msg.setTimeRecorded(now);
 					msg.setBody(mBody);
+					if(req.senderNameToBeDisplayed != null) msg.setSenderNameToBeDisplayed(req.senderNameToBeDisplayed);
 					if(fromGroup != null) {
 						msg.setSenderGroup(fromGroup);
 					}

@@ -11,7 +11,7 @@ public class APINotificationStatus {
 	
 	public APINotificationStatus() {}
 	public APINotificationStatus(TrackingUser user, String status, String errorMessage) {
-		this.userId = user.getUserId();
+		this.userId = (user == null) ? null : user.getUserId();
 		this.status = status;
 		this.errorMessage = errorMessage;
 	}

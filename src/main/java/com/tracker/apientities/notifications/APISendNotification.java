@@ -14,4 +14,5 @@ public class APISendNotification {
 	public String type; // see NotificationEngine
 	public Integer travelOrderId;
 	public Integer taskGoalId;
+	public String senderNameToBeDisplayed;
 }
