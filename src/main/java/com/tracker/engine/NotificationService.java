@@ -13,8 +13,10 @@ import com.google.android.gcm.server.Sender;
 import com.notnoop.apns.APNS;
 import com.notnoop.apns.ApnsNotification;
 import com.notnoop.apns.ApnsService;
+import com.tracker.apientities.APIBaseResponse;
 
 public class NotificationService {
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(NotificationService.class);
 	private final int retries = 3; 
 	private String gcmApiKey = null; 
 	private String apnsCertificatePath = null; 
@@ -61,7 +63,7 @@ public class NotificationService {
 		return apnsService;
 	}
 	
-    public boolean pushGCM(String token, String title, String message){
+    public String pushGCM(String token, String title, String message){
         Message msg = new Message.Builder()
         		.addData("title", title == null ? "" : title)
         		.addData("message", message == null ? "" : message)
@@ -69,30 +71,30 @@ public class NotificationService {
         		.build();
         try {
                 Result result = gcmService.send(msg, token, retries);
-                return result.getMessageId() != null;
+                return result.getMessageId();
         } catch (IOException e) {
 
         } 
-        return false;
+        return null;
     }
     
-    public boolean pushAPNS(String token, String title, String message){
+    public String pushAPNS(String token, String title, String message){
     	try {
 	    	 String payload = APNS.newPayload()
 		    	 .alertBody(message)
 		    	 .alertTitle(title).build();
 	    	 @SuppressWarnings("unchecked")
 	    	 ApnsNotification notification = (ApnsNotification)apnsService.push(token, payload);    
-	    	 return notification.getIdentifier() > 0;
+	    	 return Integer.toString(notification.getIdentifier());
     	} catch (Exception e) {
         } 
-    	return false;
+    	return null;
     }	
     
-    public boolean push(String token, String title, String message, String platform) {
+    public String push(String token, String title, String message, String platform) {
     	if(platform.equals("iOS") || platform.equals("iPhone OS")) return pushAPNS(token, title, message);
     	if(platform.equals("Android")) return pushGCM(token, title, message);
-    	return false;
+    	return null;
     }
 	
 }

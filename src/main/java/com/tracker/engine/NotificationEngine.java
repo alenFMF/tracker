@@ -29,6 +29,7 @@ import com.tracker.apientities.notifications.APINotificationMessage;
 import com.tracker.apientities.notifications.APINotificationStatus;
 import com.tracker.apientities.notifications.APINotifications;
 import com.tracker.apientities.notifications.APINotificationsResponse;
+import com.tracker.apientities.notifications.APIPushNotificationReceived;
 import com.tracker.apientities.notifications.APISendNotification;
 import com.tracker.apientities.notifications.APISendNotificationResponse;
 import com.tracker.apientities.notifications.APIUsers;
@@ -43,6 +44,9 @@ import com.tracker.utils.SessionKeeper;
 
 @Component
 public class NotificationEngine {
+	
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(NotificationEngine.class);
+	
 	@Autowired
 	private SessionFactory sessionFactory;
 	
@@ -277,7 +281,9 @@ public class NotificationEngine {
 					DeviceRecord device = deviceRegistration.getDevice();
 					String platform = device.getPlatform();
 					String title = req.title == null ? "" : req.title;
-					if(notificationService.push(regToken, title, req.message, platform)) {
+					
+					String serviceMessageId = notificationService.push(regToken, title, req.message, platform);
+					if(serviceMessageId != null) {
 							send = true;
 					} else {
 							APINotificationStatus stat = new APINotificationStatus(user, "PUSH_FAILED", platform);
@@ -294,7 +300,9 @@ public class NotificationEngine {
 					msg.setTimestamp(now);
 					msg.setTimeRecorded(now);
 					msg.setBody(mBody);
+					msg.setServiceMessageId(serviceMessageId);
 					if(req.senderNameToBeDisplayed != null) msg.setSenderNameToBeDisplayed(req.senderNameToBeDisplayed);
+					if(req.travelOrderId != null) msg.travelOrderId = req.travelOrderId;
 					if(fromGroup != null) {
 						msg.setSenderGroup(fromGroup);
 					}
@@ -530,6 +538,22 @@ public class NotificationEngine {
 			return res;			
 		}
 	}	
+	
+	public APINotificationsResponse pushNotificationReceived (APIPushNotificationReceived req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) { 
+			if(req.messageId != null) {
+				EventMessage msg = (EventMessage) sk.createCriteria(EventMessage.class).add(Restrictions.eq("serviceMessageId", req.messageId)).uniqueResult();
+				msg.setReceivedOnDevice(req.pushNotificationReceived);
+				sk.saveOrUpdate(msg);
+				sk.commit();
+				return new APINotificationsResponse("OK", "");
+			} 
+			return new APINotificationsResponse("ERROR", "messageId is null");
+		} catch (Exception e) {
+			logger.error("ERROR", e);
+			return new APINotificationsResponse("ERROR", e.getMessage());
+		}
+	}
 	
 //	@Scheduled(fixedDelay=2000)
 //	public void doSomething() {

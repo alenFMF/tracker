@@ -32,7 +32,8 @@ public class APINotificationMessage {
 			this.message = em.getBody().getMessage();
 			this.messageType = em.getBody().getMessageType();
 		}
-		this.senderId = em.getSender().getUserId();
+		
+		this.senderId = em.getSender() != null ? em.getSender().getUserId() : em.getSenderNameToBeDisplayed();
 		if(em.getReceiver() != null) {
 			this.receiverId = em.getReceiver().getUserId();
 		}

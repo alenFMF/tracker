@@ -9,6 +9,7 @@ import javax.persistence.ManyToOne;
 public class EventMessage extends BaseEntity {
 	public Date timestamp; // time at which event-message is actualized
 	public Date timeRecorded;
+	public Date receivedOnDevice; // time at which push notifications was received on device
 	
 	public String type;   
 	public String senderNameToBeDisplayed;
@@ -24,6 +25,7 @@ public class EventMessage extends BaseEntity {
 	
 	@ManyToOne
 	public TravelOrder travelOrder;
+	public Integer travelOrderId = null;
 	
 	public Boolean sent;    // true if message is of type that is communicated
 
@@ -32,6 +34,8 @@ public class EventMessage extends BaseEntity {
 //	public String contextGroupId;
 	
 	public String emailTo;
+	
+	public String serviceMessageId = null; // message id from GCM or APNS
 	
 	@ManyToOne
 	public MessageBody body;
@@ -119,7 +123,25 @@ public class EventMessage extends BaseEntity {
 	}
 	public void setSenderNameToBeDisplayed(String senderNameToBeDisplayed) {
 		this.senderNameToBeDisplayed = senderNameToBeDisplayed;
-	}		
+	}
+	public Date getReceivedOnDevice() {
+		return receivedOnDevice;
+	}
+	public void setReceivedOnDevice(Date receivedOnDevice) {
+		this.receivedOnDevice = receivedOnDevice;
+	}
+	public Integer getTravelOrderId() {
+		return travelOrderId;
+	}
+	public void setTravelOrderId(Integer travelOrderId) {
+		this.travelOrderId = travelOrderId;
+	}
+	public String getserviceMessageId() {
+		return serviceMessageId;
+	}
+	public void setServiceMessageId(String serviceMessageId) {
+		this.serviceMessageId = serviceMessageId;
+	}
 }
 
 /* Possible message types:

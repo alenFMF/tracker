@@ -18,6 +18,7 @@ import com.tracker.apientities.notifications.APIDeviceResponse;
 import com.tracker.apientities.notifications.APIDeviceUpdate;
 import com.tracker.apientities.notifications.APINotifications;
 import com.tracker.apientities.notifications.APINotificationsResponse;
+import com.tracker.apientities.notifications.APIPushNotificationReceived;
 import com.tracker.apientities.notifications.APISendNotification;
 import com.tracker.apientities.notifications.APISendNotificationResponse;
 import com.tracker.engine.AuthenticationEngine;
@@ -77,6 +78,13 @@ public class NotificationsController {
 //		return new ResponseEntity<APIDeviceResponse>(deviceEngine.list(req), HttpStatus.OK);
 //	}		
 //	
+	@RequestMapping(value = "pushNotificationReceived", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APINotificationsResponse> pushNotificationReceived(@RequestBody APIPushNotificationReceived req) {
+		inputLogger(req);
+		return new ResponseEntity<APINotificationsResponse>(notificationEngine.pushNotificationReceived(req), HttpStatus.OK);
+	}	
+	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {
         APIBaseResponse.logError(exc);
