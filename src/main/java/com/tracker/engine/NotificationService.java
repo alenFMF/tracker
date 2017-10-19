@@ -3,17 +3,14 @@ package com.tracker.engine;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.util.List;
 import java.util.Properties;
 
 import com.google.android.gcm.server.Message;
-import com.google.android.gcm.server.MulticastResult;
 import com.google.android.gcm.server.Result;
 import com.google.android.gcm.server.Sender;
 import com.notnoop.apns.APNS;
 import com.notnoop.apns.ApnsNotification;
 import com.notnoop.apns.ApnsService;
-import com.tracker.apientities.APIBaseResponse;
 
 public class NotificationService {
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(NotificationService.class);
@@ -68,6 +65,8 @@ public class NotificationService {
         		.addData("title", title == null ? "" : title)
         		.addData("message", message == null ? "" : message)
         		.addData("largeIcon", "push_notification_icon")
+        		.addData("appName", "com.gooptidriverproject") // for receiving confirmation that push notification was delivered
+        		.addData("urlPath", "response_push_notification_link")  // for receiving confirmation that push notification was delivered
         		.build();
         try {
                 Result result = gcmService.send(msg, token, retries);
@@ -86,6 +85,7 @@ public class NotificationService {
 	    	 @SuppressWarnings("unchecked")
 	    	 ApnsNotification notification = (ApnsNotification)apnsService.push(token, payload);    
 	    	 return Integer.toString(notification.getIdentifier());
+	    	 
     	} catch (Exception e) {
         } 
     	return null;
