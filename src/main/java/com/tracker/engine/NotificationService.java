@@ -4,6 +4,7 @@ import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Properties;
+import java.util.UUID;
 
 import com.google.android.gcm.server.Message;
 import com.google.android.gcm.server.Result;
@@ -36,7 +37,7 @@ public class NotificationService {
 				this.apnsService = APNS.newService()
 				    	 .withCert(apnsCertificatePath, apnsPassword)
 				    	 .withSandboxDestination()
-				    	 .build();						
+				    	 .build();
 		 } catch (Exception ex) {
 			 System.err.println("ERROR: Problem with Notification server configuration. Notification server disabled.");
 			 ex.printStackTrace();
@@ -78,17 +79,23 @@ public class NotificationService {
     }
     
     public String pushAPNS(String token, String title, String message){
-    	try {
-	    	 String payload = APNS.newPayload()
-		    	 .alertBody(message)
-		    	 .alertTitle(title).build();
-	    	 @SuppressWarnings("unchecked")
-	    	 ApnsNotification notification = (ApnsNotification)apnsService.push(token, payload);    
-	    	 return Integer.toString(notification.getIdentifier());
-	    	 
-    	} catch (Exception e) {
-        } 
-    	return null;
+    		try {
+    			String uniqueID = UUID.randomUUID().toString(); // for receiving confirmation that push notification was delivered ID is needed
+    			String payload = APNS.newPayload()
+    					.alertBody(message)
+    					.alertTitle(title)
+    					.instantDeliveryOrSilentNotification()
+    					.customField("identifierAPNS",uniqueID)
+    					.build();
+    			@SuppressWarnings("unchecked")
+    			ApnsNotification notification = (ApnsNotification)apnsService.push(token, payload);    
+
+    			if(notification.getIdentifier() > 0) return uniqueID;
+    			return null;
+    		} catch (Exception e) {
+    			
+    		} 
+    		return null;
     }	
     
     public String push(String token, String title, String message, String platform) {

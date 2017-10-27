@@ -1,3 +1,4 @@
+
 package com.tracker.engine;
 
 import java.security.NoSuchAlgorithmException;
@@ -393,6 +394,7 @@ public class AuthenticationEngine {
 				res.monitored = user.getMonitored();
 				res.postingSecret = user.getPostingSecret();
 				res.userId = user.getUserId();
+				if(req.device.uuid.equals(user.getPrimaryNotificationDevice().device.getUuid())) res.isPrimaryDevice = true;
 				return res;
 			}
 			if(status.equals("OK_OVERRIDE")) {
