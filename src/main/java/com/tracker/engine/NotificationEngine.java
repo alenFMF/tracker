@@ -25,6 +25,7 @@ import com.tracker.apientities.notifications.APIDeviceQuery;
 import com.tracker.apientities.notifications.APIDeviceRegister;
 import com.tracker.apientities.notifications.APIDeviceResponse;
 import com.tracker.apientities.notifications.APIDeviceUpdate;
+import com.tracker.apientities.notifications.APIMarkReadMessages;
 import com.tracker.apientities.notifications.APINotificationMessage;
 import com.tracker.apientities.notifications.APINotificationStatus;
 import com.tracker.apientities.notifications.APINotifications;
@@ -539,19 +540,41 @@ public class NotificationEngine {
 		}
 	}	
 	
-	public APINotificationsResponse pushNotificationReceived (APIPushNotificationReceived req) {
+	public APIBaseResponse pushNotificationReceived (APIPushNotificationReceived req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) { 
 			if(req.messageId != null) {
 				EventMessage msg = (EventMessage) sk.createCriteria(EventMessage.class).add(Restrictions.eq("serviceMessageId", req.messageId)).uniqueResult();
 				msg.setReceivedOnDevice(req.pushNotificationReceived);
 				sk.saveOrUpdate(msg);
 				sk.commit();
-				return new APINotificationsResponse("OK", "");
+				return new APIBaseResponse("OK", "");
 			} 
-			return new APINotificationsResponse("ERROR", "messageId is null");
+			return new APIBaseResponse("ERROR", "messageId is null");
 		} catch (Exception e) {
 			logger.error("ERROR", e);
-			return new APINotificationsResponse("ERROR", e.getMessage());
+			return new APIBaseResponse("ERROR", e.getMessage());
+		}
+	}
+
+	
+	public APIBaseResponse markReadMessages (APIMarkReadMessages req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
+			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
+			if(tokenUser == null) {
+				return new APIBaseResponse("AUTH_ERROR", "");
+			}
+			if(req.readMessagesIDs != null || !req.readMessagesIDs.isEmpty()) {
+				for(Integer messageId : req.readMessagesIDs) {
+					EventMessage msg = (EventMessage) sk.createCriteria(EventMessage.class).add(Restrictions.eq("id", messageId)).uniqueResult();
+					msg.setMarkMessageAsRead(true);
+					sk.saveOrUpdate(msg);
+				}				
+			} 
+			sk.commit();
+			return new APIBaseResponse("OK", "");
+		} catch (Exception e) {
+			logger.error("ERROR", e);
+			return new APIBaseResponse("ERROR", e.getMessage());
 		}
 	}
 	

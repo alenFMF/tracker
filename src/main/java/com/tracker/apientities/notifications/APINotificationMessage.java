@@ -20,6 +20,7 @@ public class APINotificationMessage {
 	public String sentTo;
 	public String senderGroup;
 	public String receiverGroup;
+	public Boolean markMessageAsRead;
 	
 	public APINotificationMessage() {}
 	
@@ -54,5 +55,6 @@ public class APINotificationMessage {
 		if(this.type.equals("EMAIL_TEXT")) {
 			this.sentTo = em.getEmailTo();
 		}
+		this.markMessageAsRead = em.getMarkMessageAsRead();
 	}
 }

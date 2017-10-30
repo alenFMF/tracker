@@ -37,6 +37,8 @@ public class EventMessage extends BaseEntity {
 	
 	public String serviceMessageId = null; // message id from GCM or APNS
 	
+	public Boolean markMessageAsRead;
+	
 	@ManyToOne
 	public MessageBody body;
 	
@@ -141,6 +143,12 @@ public class EventMessage extends BaseEntity {
 	}
 	public void setServiceMessageId(String serviceMessageId) {
 		this.serviceMessageId = serviceMessageId;
+	}
+	public Boolean getMarkMessageAsRead() {
+		return markMessageAsRead;
+	}
+	public void setMarkMessageAsRead(Boolean markMessageAsRead) {
+		this.markMessageAsRead = markMessageAsRead;
 	}
 }
 

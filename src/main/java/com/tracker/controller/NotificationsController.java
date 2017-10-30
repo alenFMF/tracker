@@ -16,6 +16,7 @@ import com.tracker.apientities.notifications.APIDeviceQuery;
 import com.tracker.apientities.notifications.APIDeviceRegister;
 import com.tracker.apientities.notifications.APIDeviceResponse;
 import com.tracker.apientities.notifications.APIDeviceUpdate;
+import com.tracker.apientities.notifications.APIMarkReadMessages;
 import com.tracker.apientities.notifications.APINotifications;
 import com.tracker.apientities.notifications.APINotificationsResponse;
 import com.tracker.apientities.notifications.APIPushNotificationReceived;
@@ -80,9 +81,16 @@ public class NotificationsController {
 //	
 	@RequestMapping(value = "pushNotificationReceived", method = RequestMethod.POST)
 	@ResponseBody
-	public ResponseEntity<APINotificationsResponse> pushNotificationReceived(@RequestBody APIPushNotificationReceived req) {
+	public ResponseEntity<APIBaseResponse> pushNotificationReceived(@RequestBody APIPushNotificationReceived req) {
 		inputLogger(req);
-		return new ResponseEntity<APINotificationsResponse>(notificationEngine.pushNotificationReceived(req), HttpStatus.OK);
+		return new ResponseEntity<APIBaseResponse>(notificationEngine.pushNotificationReceived(req), HttpStatus.OK);
+	}	
+
+	@RequestMapping(value = "markReadMessages", method = RequestMethod.POST)
+	@ResponseBody
+	public ResponseEntity<APIBaseResponse> markReadMessages(@RequestBody APIMarkReadMessages req) {
+		inputLogger(req);
+		return new ResponseEntity<APIBaseResponse>(notificationEngine.markReadMessages(req), HttpStatus.OK);
 	}	
 	
     @ExceptionHandler
