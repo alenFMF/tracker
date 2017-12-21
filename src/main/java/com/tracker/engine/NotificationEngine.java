@@ -6,7 +6,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
 import org.hibernate.criterion.Order;
@@ -33,20 +33,26 @@ import com.tracker.apientities.notifications.APINotificationsResponse;
 import com.tracker.apientities.notifications.APIPushNotificationReceived;
 import com.tracker.apientities.notifications.APISendNotification;
 import com.tracker.apientities.notifications.APISendNotificationResponse;
+import com.tracker.apientities.notifications.APISendSmsRequest;
+import com.tracker.apientities.notifications.APISendSmsResponse;
 import com.tracker.apientities.notifications.APIUsers;
 import com.tracker.db.DeviceRecord;
 import com.tracker.db.EventMessage;
 import com.tracker.db.MessageBody;
 import com.tracker.db.NotificationRegistration;
 import com.tracker.db.OrganizationGroup;
+import com.tracker.db.PushNotificationMessage;
 import com.tracker.db.TrackingUser;
 import com.tracker.db.Vehicle;
+import com.tracker.types.PlatformType;
+import com.tracker.types.PushNotificationStatus;
 import com.tracker.utils.SessionKeeper;
 
 @Component
 public class NotificationEngine {
 	
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(NotificationEngine.class);
+	private static final int PUSH_NOTIFICATION_NOT_DELIEVERED_IN_TIME = 300000;
 	
 	@Autowired
 	private SessionFactory sessionFactory;
@@ -66,6 +72,9 @@ public class NotificationEngine {
 	@Value("#{generalProperties.gooptiAuthCheckNotifToken}")
 	private String service;
 	
+	@Value("#{generalProperties.gooptiSendSms}")
+	private String serviceSendSms;
+	
 	public APIBaseResponse register(APIDeviceRegister req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
 			TrackingUser tokenUser = authEngine.getTokenUser(sk, req.token);
@@ -76,7 +85,7 @@ public class NotificationEngine {
 				return new APIBaseResponse("NO_NOTIFICATON_TOKEN","");
 			}
 			String platform = req.device.platform;
-			if(!platform.equals("iOS") && !platform.equals("Android") && !platform.equals("iPhone OS")) {
+			if(!platform.equals(PlatformType.IOS.getName()) && !platform.equals(PlatformType.ANDROID.getName()) && !platform.equals(PlatformType.IPHONEOS.getName())) {
 				return new APIBaseResponse("WRONG_PLATFORM", platform != null ? platform : "null");
 			}
 			Date now = new Date();
@@ -127,7 +136,7 @@ public class NotificationEngine {
 				return "USER_NULL";
 			}					
 			String platform = deviceRecord.platform;
-			if(!platform.equals("iOS") && !platform.equals("Android") && !platform.equals("iPhone OS")) {
+			if(!platform.equals(PlatformType.IOS.getName()) && !platform.equals(PlatformType.ANDROID.getName()) && !platform.equals(PlatformType.IPHONEOS.getName())) {
 				return "WRONG_PLATFORM";
 			}
 			DeviceRecord device = (DeviceRecord)sk.createCriteria(DeviceRecord.class).add(Restrictions.eq("uuid", deviceRecord.uuid)).uniqueResult();
@@ -241,7 +250,7 @@ public class NotificationEngine {
 					return new APISendNotificationResponse("WRONG_MESSAGE_TYPE","");
 				}
 			}
-			List<Pair<APINotificationStatus, EventMessage>> records = new LinkedList<Pair<APINotificationStatus, EventMessage>>();
+			List<Triple<APINotificationStatus, EventMessage, PushNotificationMessage>> records = new LinkedList<Triple<APINotificationStatus, EventMessage, PushNotificationMessage>>();
 			Date now = new Date();
 			boolean send = false;
 			if(req.type.equals("NOTIFICATION")) {
@@ -268,7 +277,7 @@ public class NotificationEngine {
 						APINotificationStatus status = new APINotificationStatus(null, "NO_SUCH_USER", 
 								"(" + aUser.userId == null ? "-" : aUser.userId + ", " 
 										+ aUser.provider == null ? "-" : aUser.provider);
-						records.add(Pair.of(status, null));
+						records.add(Triple.of(status, null, null));
 						continue;
 					} 
 					// get recieiver token
@@ -276,22 +285,39 @@ public class NotificationEngine {
 					String regToken = deviceRegistration == null ? null : deviceRegistration.getNotificationToken();
 					if( deviceRegistration == null || regToken == null) {
 						APINotificationStatus stat = new APINotificationStatus(user, "RECIPIENT_HAS_NO_DEVICE", "");
-						records.add(Pair.of(stat, null));
+						records.add(Triple.of(stat, null, null));
 						continue;
 					}
 					DeviceRecord device = deviceRegistration.getDevice();
 					String platform = device.getPlatform();
 					String title = req.title == null ? "" : req.title;
 					
-					String serviceMessageId = notificationService.push(regToken, title, req.message, platform);
+					String serviceMessageId = notificationService.push(regToken, title, req.message, platform, req.travelOrderId, req.openPage);
 					if(serviceMessageId != null) {
 							send = true;
 					} else {
 							APINotificationStatus stat = new APINotificationStatus(user, "PUSH_FAILED", platform);
-							records.add(Pair.of(stat, null));
+							records.add(Triple.of(stat, null, null));
 							continue;													
 					}
 					
+					PushNotificationMessage pnMessage = new PushNotificationMessage();
+					pnMessage.setContent(req.message);
+					pnMessage.setServicePushNotificationId(serviceMessageId);
+					pnMessage.setSender(req.user);
+					pnMessage.setReceipient(req.driverName);
+					pnMessage.setFranchiseUids(req.franchiseUids);
+					pnMessage.setSmsType("DRIVER_NOTIFICATION");
+					pnMessage.setSmsSuccessfullySentSimulatneously(req.smsSuccessfullySentSimulatneously);
+					pnMessage.setDriverAssignmentId(req.driverAssignmentId);
+					pnMessage.setTitle(req.title);
+					pnMessage.setSenderNameToBeDisplayed(req.senderNameToBeDisplayed);
+					pnMessage.setDriverAssignmentId(req.driverAssignmentId);
+					pnMessage.setGoOptiDriverAssignmentStatus(req.driverAssignmentStatus);
+					pnMessage.setNumber(req.number);
+					pnMessage.setPushNotificationStatus(PushNotificationStatus.SENT);
+					pnMessage.setTimeSent(now);
+								
 					EventMessage msg = new EventMessage();
 					msg.setSender(tokenUser);
 					msg.setReceiver(user);
@@ -301,29 +327,28 @@ public class NotificationEngine {
 					msg.setTimestamp(now);
 					msg.setTimeRecorded(now);
 					msg.setBody(mBody);
-					msg.setServiceMessageId(serviceMessageId);
-					if(req.senderNameToBeDisplayed != null) msg.setSenderNameToBeDisplayed(req.senderNameToBeDisplayed);
-					if(req.travelOrderId != null) msg.travelOrderId = req.travelOrderId;
+					msg.setPushNotificationMessage(pnMessage);
 					if(fromGroup != null) {
 						msg.setSenderGroup(fromGroup);
 					}
 					APINotificationStatus stat = new APINotificationStatus(user, "OK", "");
-					records.add(Pair.of(stat, msg));
+					records.add(Triple.of(stat, msg, pnMessage));
 				}
 				if(send) {
 					sk.save(mBody);
-					for(Pair<APINotificationStatus, EventMessage> p: records) {
-						if(p.getRight() != null) {
+					for(Triple<APINotificationStatus, EventMessage, PushNotificationMessage> p: records) {
+						if(p.getMiddle() != null) {
+							sk.save(p.getMiddle());
 							sk.save(p.getRight());
 						}
 					}
 				}
 				sk.commit();
 				List<APINotificationStatus> statuses = new LinkedList<APINotificationStatus>();
-				for(Pair<APINotificationStatus, EventMessage> p: records) {
+				for(Triple<APINotificationStatus, EventMessage, PushNotificationMessage> p: records) {
 					APINotificationStatus aStat = p.getLeft();
-					if(p.getRight() != null) {
-						aStat.messageId = p.getRight().getId();
+					if(p.getMiddle() != null) {
+						aStat.messageId = p.getMiddle().getId();
 					}
 					statuses.add(aStat);
 				}
@@ -369,7 +394,7 @@ public class NotificationEngine {
 				MessageBody mBody = null;
 				if(req.message != null) {
 					mBody = new MessageBody();
-					mBody.setMessageType(req.messageType == null ? req.type : req.messageType);
+					mBody.setMessageType(req.messageType);
 					mBody.setMessage(req.message);
 					msg.setBody(mBody);
 					sk.save(mBody);
@@ -403,7 +428,7 @@ public class NotificationEngine {
 				MessageBody mBody = null;
 				if(req.message != null) {
 					mBody = new MessageBody();
-					mBody.setMessageType(req.messageType == null ? req.type : req.messageType);
+					mBody.setMessageType(req.messageType);
 					String link = s3Service.putRawText(req.message);
 					mBody.setLink(link);				
 				}
@@ -434,7 +459,7 @@ public class NotificationEngine {
 				MessageBody mBody = null;
 				if(req.message != null) {
 					mBody = new MessageBody();
-					mBody.setMessageType(req.messageType == null ? req.type : req.messageType);
+					mBody.setMessageType(req.messageType);
 					mBody.setMessage(req.message);
 					emailService.send(req.to, req.title, req.message, req.messageType);
 				}
@@ -543,8 +568,9 @@ public class NotificationEngine {
 	public APIBaseResponse pushNotificationReceived (APIPushNotificationReceived req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) { 
 			if(req.messageId != null) {
-				EventMessage msg = (EventMessage) sk.createCriteria(EventMessage.class).add(Restrictions.eq("serviceMessageId", req.messageId)).uniqueResult();
-				msg.setReceivedOnDevice(req.pushNotificationReceived);
+				PushNotificationMessage msg = (PushNotificationMessage) sk.createCriteria(PushNotificationMessage.class).add(Restrictions.eq("servicePushNotificationId", req.messageId)).uniqueResult();
+				msg.setTimeDelievered(req.pushNotificationReceived);
+				msg.setPushNotificationStatus(PushNotificationStatus.DELIEVERED);
 				sk.saveOrUpdate(msg);
 				sk.commit();
 				return new APIBaseResponse("OK", "");
@@ -565,9 +591,9 @@ public class NotificationEngine {
 			}
 			if(req.readMessagesIDs != null || !req.readMessagesIDs.isEmpty()) {
 				for(Integer messageId : req.readMessagesIDs) {
-					EventMessage msg = (EventMessage) sk.createCriteria(EventMessage.class).add(Restrictions.eq("id", messageId)).uniqueResult();
-					msg.setMarkMessageAsRead(true);
-					sk.saveOrUpdate(msg);
+					PushNotificationMessage pnm = (PushNotificationMessage) sk.createCriteria(PushNotificationMessage.class).add(Restrictions.eq("id", messageId)).uniqueResult();
+					pnm.setMarkMessageAsRead(true);
+					sk.saveOrUpdate(pnm);
 				}				
 			} 
 			sk.commit();
@@ -578,9 +604,40 @@ public class NotificationEngine {
 		}
 	}
 	
+
+	@Scheduled(fixedDelay=30000)
+	@SuppressWarnings("unchecked")
+	public void sendSMSIfPushNotificationDeliveryFailes() {
+		logger.info("Scheduled Job - sendSMSIfPushNotificationDeliveryFailes");
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) { 
+			Date now = new Date(System.currentTimeMillis() - PUSH_NOTIFICATION_NOT_DELIEVERED_IN_TIME);
+			List<PushNotificationMessage> listOfMessages = sk.createCriteria(PushNotificationMessage.class, "pnm")
+					.add(Restrictions.eq("pnm.smsSuccessfullySentSimulatneously", false))
+					.add(Restrictions.eq("pnm.pushNotificationStatus", PushNotificationStatus.SENT))
+					.add(Restrictions.ge("pnm.timeSent", now))
+ 					.list();
+	        String url = UriComponentsBuilder.fromHttpUrl(serviceSendSms)
+	                .build().encode().toUriString();
+			RestTemplate restTempl = new RestTemplate();
+			for(int i=0; i<listOfMessages.size(); i++) {
+				PushNotificationMessage pn = listOfMessages.get(i);
+				APISendSmsRequest smsReq = new APISendSmsRequest(pn.getNumber(), pn.getContent(), pn.getFranchiseUids(), pn.getReceipient(), pn.getSmsType());
+				APISendSmsResponse smsResp = restTempl.postForObject(url, smsReq, APISendSmsResponse.class);
+				if(smsResp.isSent()) {
+					pn.setSmsSuccessfullySentSimulatneously(true);
+					sk.saveOrUpdate(pn);
+				}
+			}
+			sk.commit();	
+		} catch (Exception e) {
+			logger.error("ERROR", e);
+		}
+	} 
+
 //	@Scheduled(fixedDelay=2000)
 //	public void doSomething() {
 //		String pass = "neki spredi \"password\":\"neki neki\" neki zadi";
 //	    System.out.println(pass.replaceAll("\\\"password\\\"\\s*:\\s*\\\"[^\\\"]*\\\"", "\"password\" : \"*********\""));
-//	}	
+//	}
+	
 }

@@ -8,12 +8,8 @@ import javax.persistence.ManyToOne;
 @Entity
 public class EventMessage extends BaseEntity {
 	public Date timestamp; // time at which event-message is actualized
-	public Date timeRecorded;
-	public Date receivedOnDevice; // time at which push notifications was received on device
-	
+	public Date timeRecorded;	
 	public String type;   
-	public String senderNameToBeDisplayed;
-	
 	@ManyToOne
 	public TrackingUser sender;
 	@ManyToOne
@@ -22,25 +18,17 @@ public class EventMessage extends BaseEntity {
 	public OrganizationGroup senderGroup;
 	@ManyToOne
 	public OrganizationGroup receiverGroup;
-	
 	@ManyToOne
 	public TravelOrder travelOrder;
-	public Integer travelOrderId = null;
-	
 	public Boolean sent;    // true if message is of type that is communicated
-
 	public String title;
-	
 //	public String contextGroupId;
-	
 	public String emailTo;
-	
-	public String serviceMessageId = null; // message id from GCM or APNS
-	
-	public Boolean markMessageAsRead;
-	
 	@ManyToOne
 	public MessageBody body;
+
+	@ManyToOne
+	public PushNotificationMessage pushNotificationMessage;
 	
 	public Date getTimestamp() {
 		return timestamp;
@@ -120,36 +108,14 @@ public class EventMessage extends BaseEntity {
 	public void setEmailTo(String emailTo) {
 		this.emailTo = emailTo;
 	}	
-	public String getSenderNameToBeDisplayed() {
-		return senderNameToBeDisplayed;
+
+	public PushNotificationMessage getPushNotificationMessage() {
+		return pushNotificationMessage;
 	}
-	public void setSenderNameToBeDisplayed(String senderNameToBeDisplayed) {
-		this.senderNameToBeDisplayed = senderNameToBeDisplayed;
+	public void setPushNotificationMessage(PushNotificationMessage pushNotificationMessage) {
+		this.pushNotificationMessage =  pushNotificationMessage;
 	}
-	public Date getReceivedOnDevice() {
-		return receivedOnDevice;
-	}
-	public void setReceivedOnDevice(Date receivedOnDevice) {
-		this.receivedOnDevice = receivedOnDevice;
-	}
-	public Integer getTravelOrderId() {
-		return travelOrderId;
-	}
-	public void setTravelOrderId(Integer travelOrderId) {
-		this.travelOrderId = travelOrderId;
-	}
-	public String getserviceMessageId() {
-		return serviceMessageId;
-	}
-	public void setServiceMessageId(String serviceMessageId) {
-		this.serviceMessageId = serviceMessageId;
-	}
-	public Boolean getMarkMessageAsRead() {
-		return markMessageAsRead;
-	}
-	public void setMarkMessageAsRead(Boolean markMessageAsRead) {
-		this.markMessageAsRead = markMessageAsRead;
-	}
+	
 }
 
 /* Possible message types:

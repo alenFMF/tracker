@@ -12,6 +12,7 @@ import com.google.android.gcm.server.Sender;
 import com.notnoop.apns.APNS;
 import com.notnoop.apns.ApnsNotification;
 import com.notnoop.apns.ApnsService;
+import com.tracker.types.PlatformType;
 
 public class NotificationService {
 	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(NotificationService.class);
@@ -61,13 +62,15 @@ public class NotificationService {
 		return apnsService;
 	}
 	
-    public String pushGCM(String token, String title, String message){
+    public String pushGCM(String token, String title, String message, Integer travelOrderId, String openPage){
         Message msg = new Message.Builder()
         		.addData("title", title == null ? "" : title)
         		.addData("message", message == null ? "" : message)
         		.addData("largeIcon", "push_notification_icon")
         		.addData("appName", "com.gooptidriverproject") // for receiving confirmation that push notification was delivered
         		.addData("urlPath", "response_push_notification_link")  // for receiving confirmation that push notification was delivered
+        		.addData("travelOrderId", travelOrderId == null ? "" : travelOrderId.toString())
+        		.addData("openPage", openPage == null ? "" : openPage)
         		.build();
         try {
                 Result result = gcmService.send(msg, token, retries);
@@ -78,14 +81,16 @@ public class NotificationService {
         return null;
     }
     
-    public String pushAPNS(String token, String title, String message){
+    public String pushAPNS(String token, String title, String message, Integer travelOrderId, String openPage){
     		try {
     			String uniqueID = UUID.randomUUID().toString(); // for receiving confirmation that push notification was delivered ID is needed
     			String payload = APNS.newPayload()
-    					.alertBody(message)
-    					.alertTitle(title)
+    					.alertBody(message == null ? "" : message)
+    					.alertTitle(title == null ? "" : title)
     					.instantDeliveryOrSilentNotification()
-    					.customField("identifierAPNS",uniqueID)
+    					.customField("identifierAPNS", uniqueID == null ? "" : uniqueID)
+    					.customField("travelOrderId", travelOrderId == null ? "" : travelOrderId.toString())
+    					.customField("openPage", openPage == null ? openPage : null)
     					.build();
     			@SuppressWarnings("unchecked")
     			ApnsNotification notification = (ApnsNotification)apnsService.push(token, payload);    
@@ -98,10 +103,10 @@ public class NotificationService {
     		return null;
     }	
     
-    public String push(String token, String title, String message, String platform) {
-    	if(platform.equals("iOS") || platform.equals("iPhone OS")) return pushAPNS(token, title, message);
-    	if(platform.equals("Android")) return pushGCM(token, title, message);
-    	return null;
+    public String push(String token, String title, String message, String platform, Integer travelOrderId, String openPage) {
+    		if(platform.equals(PlatformType.IOS.getName()) || platform.equals(PlatformType.IPHONEOS.getName())) return pushAPNS(token, title, message, travelOrderId, openPage);
+    		if(platform.equals(PlatformType.ANDROID.getName())) return pushGCM(token, title, message, travelOrderId, openPage);
+    		return null;
     }
 	
 }

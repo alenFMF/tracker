@@ -19,6 +19,7 @@ import com.tracker.db.MessageBody;
 import com.tracker.db.EventMessage;
 import com.tracker.db.NotificationRegistration;
 import com.tracker.db.OrganizationGroup;
+import com.tracker.db.PushNotificationMessage;
 import com.tracker.db.TaskGoal;
 import com.tracker.db.TestEntity;
 import com.tracker.db.TrackingProperty;
@@ -57,7 +58,8 @@ public class HibernateConfiguration {
 			TaskGoal.class,
 			TravelOrder.class,
 			DriverAssignment.class,
-			TrackingProperty.class
+			TrackingProperty.class,
+			PushNotificationMessage.class
 			});
 		bean.setHibernateProperties(hibernateProperties);
 		//bean.setEntityInterceptor(new AuditInterceptor());

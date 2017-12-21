@@ -20,6 +20,7 @@ public class APINotificationMessage {
 	public String sentTo;
 	public String senderGroup;
 	public String receiverGroup;
+	public Integer pushNotificationId;
 	public Boolean markMessageAsRead;
 	
 	public APINotificationMessage() {}
@@ -34,7 +35,7 @@ public class APINotificationMessage {
 			this.messageType = em.getBody().getMessageType();
 		}
 		
-		this.senderId = em.getSender() != null ? em.getSender().getUserId() : em.getSenderNameToBeDisplayed();
+		this.senderId = em.getSender() != null ? em.getSender().getUserId() : null;
 		if(em.getReceiver() != null) {
 			this.receiverId = em.getReceiver().getUserId();
 		}
@@ -55,6 +56,9 @@ public class APINotificationMessage {
 		if(this.type.equals("EMAIL_TEXT")) {
 			this.sentTo = em.getEmailTo();
 		}
-		this.markMessageAsRead = em.getMarkMessageAsRead();
+		if (em.getPushNotificationMessage() != null) {
+			this.pushNotificationId = em.getPushNotificationMessage().getId();
+			this.markMessageAsRead = em.getPushNotificationMessage().getMarkMessageAsRead();
+		}
 	}
 }

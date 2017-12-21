@@ -10,4 +10,5 @@ public class APIAuthenticate {
 	public String notificationToken;
 	public Boolean forcePrimary;
 	public String oneTimeToken;
+	public String providerToken;
 }

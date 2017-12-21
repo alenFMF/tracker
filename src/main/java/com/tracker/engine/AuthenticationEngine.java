@@ -11,8 +11,12 @@ import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
 import org.hibernate.criterion.Restrictions;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
+import com.tracker.apientities.goopti.APIGoOptiAuthentication;
+import com.tracker.apientities.goopti.APIGoOptiAuthenticationResponse;
 import com.tracker.apientities.notifications.APIDevice;
 import com.tracker.apientities.notifications.APIRegistredDevice;
 import com.tracker.apientities.user.APIAuthProvidersResponse;
@@ -55,6 +59,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 
 @Component
 public class AuthenticationEngine {
+	
+	@Value("#{generalProperties.gooptiAuthURL}")
+	private String service;
 	
 	@Autowired
 	private SessionFactory sessionFactory;
@@ -341,6 +348,13 @@ public class AuthenticationEngine {
 	
 	public APIAuthenticateResponse authenticate(APIAuthenticate req) {
 		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
+			if(req.providerToken != null && req.provider != null) { //check if token is valid
+				RestTemplate restTempl = new RestTemplate();
+				APIGoOptiAuthentication request = new APIGoOptiAuthentication(req.providerToken);
+				APIGoOptiAuthenticationResponse res = restTempl.postForObject(service, request, APIGoOptiAuthenticationResponse.class);
+				if (res.status.equals("OK")) return new APIAuthenticateResponse(res.status, "");
+				else return new APIAuthenticateResponse("AUTH_ERROR", res.status);
+			}
 			TrackingUser user = null;
 			String token = null;
 			if(req.oneTimeToken != null) {
