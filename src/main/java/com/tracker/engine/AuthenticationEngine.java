@@ -18,6 +18,8 @@ import org.springframework.web.client.RestTemplate;
 import com.tracker.apientities.goopti.APIGoOptiAuthentication;
 import com.tracker.apientities.goopti.APIGoOptiAuthenticationResponse;
 import com.tracker.apientities.notifications.APIDevice;
+import com.tracker.apientities.notifications.APIPrimaryDeviceRequest;
+import com.tracker.apientities.notifications.APIPrimaryDeviceResponse;
 import com.tracker.apientities.notifications.APIRegistredDevice;
 import com.tracker.apientities.user.APIAuthProvidersResponse;
 import com.tracker.apientities.user.APIAuthenticate;
@@ -72,6 +74,8 @@ public class AuthenticationEngine {
 	private TokenStorage tokens = null;
 	
 	private static final PasswordEncoder passwordEncoder = new BCryptPasswordEncoder();
+	
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AuthenticationEngine.class);
 	
 	public AuthenticationEngine() throws NoSuchAlgorithmException  {
 		this.tokens = new TokenStorage();
@@ -670,5 +674,54 @@ public class AuthenticationEngine {
 			}
 			return new APIOneTimeTokenResponse(oneTimeToken);
 		}		
+	}
+	
+	public APIPrimaryDeviceResponse getCurrentPrimaryDevice(String username, String provider) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
+			TrackingUser user = getUser(sk, username, provider);
+			if (user == null) return new APIPrimaryDeviceResponse("ERROR", ""); 
+			NotificationRegistration device = user.getPrimaryNotificationDevice();
+			APIPrimaryDeviceResponse resp = new APIPrimaryDeviceResponse();
+			resp.platform = device.getDevice().getPlatform();
+			resp.model = device.getDevice().getModel();
+			resp.manufacturer = device.getDevice().getManufacturer();
+			resp.uuid = device.getDevice().getUuid();
+			return resp;
+		} catch (Exception e) {
+			logger.error("Error fetching primary device", e);
+			return new APIPrimaryDeviceResponse("ERROR", "");
+		}		
+	}
+	
+	public APIPrimaryDeviceResponse setCurrentPrimaryDevice(APIPrimaryDeviceRequest req) {
+		try (SessionKeeper sk = SessionKeeper.open(sessionFactory)) {
+			
+			APIAuthenticate auth = new APIAuthenticate();
+			auth.providerToken = req.token;
+			auth.provider = req.provider;
+			
+			APIAuthenticateResponse authResp = authenticate(auth);
+			
+			if(!authResp.status.equals("OK")) {
+				return new APIPrimaryDeviceResponse(authResp.status, authResp.error_message);
+			}
+			
+			TrackingUser user = getUser(sk, req.username, req.provider);
+			if (user == null) return new APIPrimaryDeviceResponse("ERROR", "No user found");
+			
+							
+			String registerStatus = NotificationEngine.registerPrimaryDevice(sk, user, req.device, req.notificationToken);
+			
+			if (registerStatus.startsWith("OK")) {
+				sk.commit();	
+				return new APIPrimaryDeviceResponse(registerStatus, "");
+			}
+			
+			return new APIPrimaryDeviceResponse("ERROR", "");
+		} catch (Exception e) {
+			logger.error("Error fetching primary device", e);
+			return new APIPrimaryDeviceResponse("ERROR", "");
+		}		
 	}	
+	
 }

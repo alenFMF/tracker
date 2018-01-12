@@ -8,10 +8,13 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.tracker.apientities.APIBaseResponse;
+import com.tracker.apientities.notifications.APIPrimaryDeviceRequest;
+import com.tracker.apientities.notifications.APIPrimaryDeviceResponse;
 import com.tracker.apientities.user.APIAuthProvidersResponse;
 import com.tracker.apientities.user.APIAuthenticate;
 import com.tracker.apientities.user.APIAuthenticateResponse;
@@ -130,7 +133,22 @@ public class AuthenticationController {
 	@ResponseBody
 	public ResponseEntity<APIAuthProvidersResponse> listAuthProviders() {
 		return new ResponseEntity<APIAuthProvidersResponse>(authEngine.listAuthProviders(), HttpStatus.OK);
-	}	
+	}
+
+	@RequestMapping(value = "primaryDevice/get", method = RequestMethod.GET)
+	@ApiOperation(value = "Get user's primary device.", notes = "")
+	@ResponseBody
+	public ResponseEntity<APIPrimaryDeviceResponse> listAuthProviders(@RequestParam(value = "username", required = true) String username, @RequestParam(value = "provider", required = true) String provider) {
+		return new ResponseEntity<APIPrimaryDeviceResponse>(authEngine.getCurrentPrimaryDevice(username, provider), HttpStatus.OK);
+	}
+
+	@RequestMapping(value = "primaryDevice/set", method = RequestMethod.POST)
+	@ApiOperation(value = "Set user's primary device.", notes = "")
+	@ResponseBody
+	public ResponseEntity<APIPrimaryDeviceResponse> listUsers(@RequestBody APIPrimaryDeviceRequest req) {
+		inputLogger(req);
+		return new ResponseEntity<APIPrimaryDeviceResponse>(authEngine.setCurrentPrimaryDevice(req), HttpStatus.OK);
+	}
 	
     @ExceptionHandler
     public ResponseEntity<APIBaseResponse> handleException(Exception exc) {

@@ -310,6 +310,7 @@ public class NotificationEngine {
 					pnMessage.setSmsType("DRIVER_NOTIFICATION");
 					pnMessage.setSmsSuccessfullySentSimulatneously(req.smsSuccessfullySentSimulatneously);
 					pnMessage.setDriverAssignmentId(req.driverAssignmentId);
+					pnMessage.setTravelOrderId(req.travelOrderId);
 					pnMessage.setTitle(req.title);
 					pnMessage.setSenderNameToBeDisplayed(req.senderNameToBeDisplayed);
 					pnMessage.setDriverAssignmentId(req.driverAssignmentId);
