@@ -9,6 +9,7 @@ public class APIAuthenticateResponse extends APIBaseResponse {
 	public String postingSecret;
 	public String userId;
 	public Boolean isPrimaryDevice;
+	public String name;
 	
 	public APIAuthenticateResponse(String token) {
 		this.token = token;
