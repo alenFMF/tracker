@@ -592,6 +592,7 @@ public class NotificationEngine {
 			}
 			if(req.readMessagesIDs != null || !req.readMessagesIDs.isEmpty()) {
 				for(Integer messageId : req.readMessagesIDs) {
+					if (messageId == null) continue;
 					PushNotificationMessage pnm = (PushNotificationMessage) sk.createCriteria(PushNotificationMessage.class).add(Restrictions.eq("id", messageId)).uniqueResult();
 					pnm.setMarkMessageAsRead(true);
 					sk.saveOrUpdate(pnm);
