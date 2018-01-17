@@ -412,6 +412,7 @@ public class AuthenticationEngine {
 				res.monitored = user.getMonitored();
 				res.postingSecret = user.getPostingSecret();
 				res.userId = user.getUserId();
+				res.name = user.name;
 				if(req.device != null && req.device.uuid.equals(user.getPrimaryNotificationDevice().device.getUuid())) res.isPrimaryDevice = true;
 				return res;
 			}
@@ -422,6 +423,7 @@ public class AuthenticationEngine {
 				res.monitored = user.getMonitored();
 				res.postingSecret = user.getPostingSecret();
 				res.userId = user.getUserId();
+				res.name = user.name;
 				return res;
 			} 
 			return new APIAuthenticateResponse(status, "");
