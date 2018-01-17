@@ -452,6 +452,7 @@ public class AuthenticationEngine {
 			resp.monitored = user.getMonitored();
 //			resp.adminGroups = null;
 //			resp.userGroups = null;
+			resp.name = user.name;
 			resp.personalGroup = user.getPersonalGroup().getGroupId();
 			NotificationRegistration reg = user.getPrimaryNotificationDevice();
 			if(reg != null) {
@@ -459,6 +460,7 @@ public class AuthenticationEngine {
 				rd.device = new APIDevice(reg.getDevice());
 				rd.registrationDate = reg.getTimestamp();
 				resp.primaryDevice = rd;
+				resp.primaryDeviceName = rd.device.manufacturer + ", " + rd.device.model; 
 			}
 			List<NotificationRegistration> regs = user.getNotificationDevices();
 			List<APIRegistredDevice> regDevices = new LinkedList<APIRegistredDevice>();
@@ -470,6 +472,12 @@ public class AuthenticationEngine {
 					regDevices.add(rd);
 				}
 				resp.devices = regDevices;
+				resp.fewDevicesName = "";
+				for (int i = 0; i < Math.min(3, regDevices.size()); i++) {
+					resp.fewDevicesName = resp.fewDevicesName + regDevices.get(i).device.manufacturer + ", " +  regDevices.get(i).device.model + "; ";
+				}
+				if(regDevices.size() > 3) resp.fewDevicesName =  resp.fewDevicesName + "...";
+				
 			}
 			return resp;
 		}

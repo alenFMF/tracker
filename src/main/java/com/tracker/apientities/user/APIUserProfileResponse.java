@@ -16,6 +16,9 @@ public class APIUserProfileResponse extends APIBaseResponse {
 	public List<APIRegistredDevice> devices;
 	public APIRegistredDevice primaryDevice;
 	public Boolean monitored;
+	public String name;
+	public String primaryDeviceName;
+	public String fewDevicesName;
 	
 	public APIUserProfileResponse() {
 		super();
