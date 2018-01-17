@@ -607,7 +607,7 @@ public class NotificationEngine {
 	}
 	
 
-	@Scheduled(fixedDelay=30000)
+	@Scheduled(fixedDelay=900000) // 15 minutes
 	@SuppressWarnings("unchecked")
 	public void sendSMSIfPushNotificationDeliveryFailes() {
 		logger.info("Scheduled Job - sendSMSIfPushNotificationDeliveryFailes");
