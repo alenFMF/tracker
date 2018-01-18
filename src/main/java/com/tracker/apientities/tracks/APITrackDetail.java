@@ -7,6 +7,7 @@ import com.fasterxml.jackson.annotation.JsonInclude;
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public class APITrackDetail {
 	public String userId;
+	public String name;
 	public String deviceUuid;
 	public List<APITrackSample> samples;	
 }

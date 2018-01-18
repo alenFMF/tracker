@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.Triple;
 import org.hibernate.Criteria;
 import org.hibernate.SessionFactory;
 import org.hibernate.criterion.Order;
@@ -39,6 +40,8 @@ import com.tracker.utils.SessionKeeper;
 
 @Component
 public class TrackerEngine {
+	
+	private static final org.slf4j.Logger logger = org.slf4j.LoggerFactory.getLogger(AuthenticationEngine.class);
 
 	@Autowired
 	private SessionFactory sessionFactory;
@@ -181,7 +184,8 @@ public class TrackerEngine {
 				        .add( Projections.property("heading"), "heading" )
 				        .add( Projections.property("Battery.batteryLevel"), "batteryLevel")
 				        .add( Projections.property("Device.uuid"), "deviceId" )
-				        .add( Projections.property("User.userId"), "userId" )				        
+				        .add( Projections.property("User.userId"), "userId" )	
+				        .add( Projections.property("User.name"), "name" )
 				    );
 				
 				c.addOrder(Order.asc("timestamp"));
@@ -209,6 +213,7 @@ public class TrackerEngine {
 				        .add( Projections.property("Battery.batteryLevel"), "batteryLevel" )
 				        .add( Projections.property("Device.uuid"), "deviceId" )
 				        .add( Projections.property("User.userId"), "userId" )
+				        .add( Projections.property("User.name"), "name" )
 				    );
 				
 				c.setResultTransformer(Transformers.aliasToBean(TableSample.class));				
@@ -216,8 +221,8 @@ public class TrackerEngine {
 			
 			List<TableSample> records = c.list();	
 			
-			Map<Pair<String, String>, List<TableSample>> sampleMap = (Map<Pair<String, String>, List<TableSample>>)records.stream()
-				.collect(Collectors.groupingBy(x -> Pair.of(x.userId, x.deviceId)));
+			Map<Triple<String, String, String>, List<TableSample>> sampleMap = (Map<Triple<String, String, String>, List<TableSample>>)records.stream()
+				.collect(Collectors.groupingBy(x -> Triple.of(x.userId, x.name, x.deviceId)));
 			
 			APITrackQueryResponse res = new APITrackQueryResponse("OK", "");
 			
@@ -243,12 +248,13 @@ public class TrackerEngine {
 				}
 			}
 			
-			for(Map.Entry<Pair<String, String>, List<TableSample>> e: sampleMap.entrySet()) {
+			for(Map.Entry<Triple<String, String, String>, List<TableSample>> e: sampleMap.entrySet()) {
 				if(allowForUsers != null) {
 					Boolean isOk = allowForUsers.get(e.getKey().getLeft());
 					if (isOk == null || isOk == false) continue;
 				}
 				APITrackDetail det = new APITrackDetail();
+				det.name = e.getKey().getMiddle();
 				det.userId = e.getKey().getLeft();
 				det.deviceUuid = e.getKey().getRight();
 				// tukaj bo for zanka ki bo filtrirala po intervalih
@@ -265,7 +271,6 @@ public class TrackerEngine {
 		}
 	}
 	
-	
 	//Table classes
 
 	public static class TableSample {
@@ -279,6 +284,7 @@ public class TrackerEngine {
 		public Double batteryLevel;
 		public String deviceId;
 		public String userId;
+		public String name;
 	}
 
 
