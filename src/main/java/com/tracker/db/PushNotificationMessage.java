@@ -29,6 +29,7 @@ public class PushNotificationMessage extends BaseEntity {
 	public String title;
 	public String number;
 	public Integer travelOrderId; // TravelOrder id received from GoOpti Back
+	public String recipientUid;
 	
 	@Column(length=3000)
 	public String content; // for sms
@@ -186,6 +187,14 @@ public class PushNotificationMessage extends BaseEntity {
 	
 	public void setTravelOrderId(Integer travelOrderId) {
 		this.travelOrderId = travelOrderId;
+	}
+	
+	public String getRecipientUid() {
+		return this.recipientUid;
+	}
+	
+	public void setRecipientUid(String recipientUid) {
+		this.recipientUid = recipientUid;
 	}
 	
 }

@@ -38,4 +38,5 @@ public class APISendNotification {
 	public String user;
 	public String driverName;
 	public String number;
+	public Boolean sentToBackendTestEmail;
 }

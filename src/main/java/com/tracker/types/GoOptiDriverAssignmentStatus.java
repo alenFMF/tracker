@@ -15,7 +15,8 @@ package com.tracker.types;
  *  	<li> REJECTED: driver rejected
  *  	<li> CANCEL: driver cancelled
  *  	<li> EXPIRED
- *  	<li> APPROVED_TRACKING_REQUEST_SENT: driver approved (push notification before start of TO sent)
+ *  	<li> APPROVED_TRACKING_REQ_SENT:  driver approved (tracking request sent)
+ *  	<li> APPROVED_TRACKING_REQ_ACCEPTED: driver approved (tracking request accepted)
  *  </ul>
  *  <p>
  */
@@ -29,7 +30,8 @@ public enum GoOptiDriverAssignmentStatus implements GoOptiTrackerEnum<GoOptiDriv
 	REJECTED,
 	CANCEL,
 	EXPIRED,
-	APPROVED_TRACKING_REQUEST_SENT;
+	APPROVED_TRACKING_REQ_SENT,
+	APPROVED_TRACKING_REQ_ACCEPTED;
 	
 	@Override
 	public String getName() {
@@ -41,7 +43,8 @@ public enum GoOptiDriverAssignmentStatus implements GoOptiTrackerEnum<GoOptiDriv
 		else if (this == REJECTED) return "Rejected";
 		else if (this == CANCEL) return "Cancelled";
 		else if (this == EXPIRED) return "Expired";
-		else if (this == APPROVED_TRACKING_REQUEST_SENT) return "Approved (tracking request sent)";
+		else if (this == APPROVED_TRACKING_REQ_SENT) return "Approved (tracking request sent)";
+		else if (this == APPROVED_TRACKING_REQ_ACCEPTED) return "Approved (tracking request accepted)";
 		else return "Unknown";
 	}
 

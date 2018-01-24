@@ -292,7 +292,13 @@ public class NotificationEngine {
 					String platform = device.getPlatform();
 					String title = req.title == null ? "" : req.title;
 					
-					String serviceMessageId = notificationService.push(regToken, title, req.message, platform, req.travelOrderId, req.openPage);
+					String serviceMessageId = "";
+					if (req.sentToBackendTestEmail) {
+						serviceMessageId = platform + " - redirected to BackendTestEmail";
+					} else {
+						serviceMessageId = notificationService.push(regToken, title, req.message, platform, req.travelOrderId, req.openPage);						
+					}
+
 					if(serviceMessageId != null) {
 							send = true;
 					} else {
@@ -318,6 +324,7 @@ public class NotificationEngine {
 					pnMessage.setNumber(req.number);
 					pnMessage.setPushNotificationStatus(PushNotificationStatus.SENT);
 					pnMessage.setTimeSent(now);
+					pnMessage.setRecipientUid(aUser.userId);
 								
 					EventMessage msg = new EventMessage();
 					msg.setSender(tokenUser);
