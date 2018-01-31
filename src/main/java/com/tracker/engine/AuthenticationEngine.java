@@ -113,7 +113,8 @@ public class AuthenticationEngine {
 			user.setName(authObj.getName());
 			user.setPassword(null, null);  // no password
 			user.setProvider(providerId);
-			user.setUserId(userId);					
+			user.setUserId(userId);	
+			if(providerId.equalsIgnoreCase("GOOPTI")) user.setMonitored(true); // if not existing user and provider == GOOPTI -> set monitored; maybe this should changed in the future
 		}
 		
 		ugen.user = user;
@@ -387,6 +388,7 @@ public class AuthenticationEngine {
 					if(authFactory.getProvider(req.provider) == null) {
 						return new APIAuthenticateResponse("WRONG_PROVIDER", "");
 					}
+					
 					// generate new provider user
 					UserGeneration ugen = generateUser(sk, req.userId, req.password, req.provider);
 					user = ugen.user;
