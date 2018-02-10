@@ -10,6 +10,7 @@ import javax.persistence.ManyToOne;
 
 import com.tracker.types.PushNotificationStatus;
 import com.tracker.types.GoOptiDriverAssignmentStatus;
+import com.tracker.types.GoOptiDriverTrackingRequestStatus;
 
 
 @Entity
@@ -44,6 +45,10 @@ public class PushNotificationMessage extends BaseEntity {
 	@Enumerated(EnumType.STRING)
 	@Column(length=30)
 	GoOptiDriverAssignmentStatus driverAssignmentStatus;
+
+	@Enumerated(EnumType.STRING)
+	@Column(length=30)
+	GoOptiDriverTrackingRequestStatus driverTrackingRequestStatus;
 	
 	public String getServicePushNotificationId() {
 		return this.servicePushNotificationId;
@@ -163,6 +168,14 @@ public class PushNotificationMessage extends BaseEntity {
 	
 	public void setGoOptiDriverAssignmentStatus(GoOptiDriverAssignmentStatus driverAssignmentStatus) {
 		this.driverAssignmentStatus = driverAssignmentStatus;
+	}
+	
+	public GoOptiDriverTrackingRequestStatus getGoOptiDriverTrackingRequestStatus() {
+		return this.driverTrackingRequestStatus;
+	}
+	
+	public void setGoOptiDriverTrackingRequestStatus(GoOptiDriverTrackingRequestStatus driverTrackingRequestStatus) {
+		this.driverTrackingRequestStatus = driverTrackingRequestStatus;
 	}
 	
 	public PushNotificationStatus getPushNotificationStatus() {

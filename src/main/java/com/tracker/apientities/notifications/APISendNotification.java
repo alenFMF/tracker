@@ -2,6 +2,7 @@ package com.tracker.apientities.notifications;
 
 import java.util.List;
 import com.tracker.types.GoOptiDriverAssignmentStatus;
+import com.tracker.types.GoOptiDriverTrackingRequestStatus;
 
 /**
  * Possible types:
@@ -39,4 +40,5 @@ public class APISendNotification {
 	public String driverName;
 	public String number;
 	public Boolean sentToBackendTestEmail;
+	public GoOptiDriverTrackingRequestStatus driverTrackingRequestStatus;
 }

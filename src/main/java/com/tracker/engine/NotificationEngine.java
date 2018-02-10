@@ -321,6 +321,7 @@ public class NotificationEngine {
 					pnMessage.setSenderNameToBeDisplayed(req.senderNameToBeDisplayed);
 					pnMessage.setDriverAssignmentId(req.driverAssignmentId);
 					pnMessage.setGoOptiDriverAssignmentStatus(req.driverAssignmentStatus);
+					pnMessage.setGoOptiDriverTrackingRequestStatus(req.driverTrackingRequestStatus);
 					pnMessage.setNumber(req.number);
 					pnMessage.setPushNotificationStatus(PushNotificationStatus.SENT);
 					pnMessage.setTimeSent(now);
