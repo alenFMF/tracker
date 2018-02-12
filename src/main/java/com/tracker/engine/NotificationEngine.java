@@ -131,7 +131,7 @@ public class NotificationEngine {
 		return true;
 	}
 	
-	public static String registerPrimaryDevice(SessionKeeper sk, TrackingUser user, APIDevice deviceRecord, String notificationToken) {
+	public static String registerPrimaryDevice(SessionKeeper sk, TrackingUser user, APIDevice deviceRecord, String notificationToken, boolean overridePrimary) {
 			if(user == null) {
 				return "USER_NULL";
 			}					
@@ -156,7 +156,7 @@ public class NotificationEngine {
 														.add(Restrictions.eq("device", device))
 														.uniqueResult();
 				if(regtoken != null) {		
-						
+					
 					String currentToken = user.getPrimaryNotificationDevice() == null ? null : user.getPrimaryNotificationDevice().notificationToken;	
 					deviceOverride = currentToken != null && !currentToken.equals(notificationToken);
 					
@@ -166,9 +166,11 @@ public class NotificationEngine {
 						sk.saveOrUpdate(regtoken);
 					}
 					// make device primary
-					if(user.getPrimaryNotificationDevice() == null || !user.getPrimaryNotificationDevice().equals(regtoken)) {
-						user.setPrimaryNotificationDevice(regtoken);
-						sk.saveOrUpdate(user);
+					if(deviceOverride && overridePrimary) {
+						if(user.getPrimaryNotificationDevice() == null || !user.getPrimaryNotificationDevice().equals(regtoken)) {
+							user.setPrimaryNotificationDevice(regtoken);
+							sk.saveOrUpdate(user);
+						}
 					}
 				} else {
 					regtoken = new NotificationRegistration(user, device, platform, notificationToken, now);
@@ -178,7 +180,8 @@ public class NotificationEngine {
 				}
 			}
 	
-			if(deviceOverride) return "OK_OVERRIDE";
+			if(deviceOverride && overridePrimary) return "OK_OVERRIDE";
+			else if(deviceOverride) return "OK_NEW_DEVICE_DETECTED";
 			return "OK";
 	}	
 	

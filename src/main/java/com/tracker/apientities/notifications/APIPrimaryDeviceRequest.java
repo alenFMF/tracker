@@ -8,5 +8,6 @@ public class APIPrimaryDeviceRequest {
 	public Boolean forcePrimary;
 	public APIDevice device;
 	public String username;
+	public Boolean overridePrimaryDevice;
 	
 }

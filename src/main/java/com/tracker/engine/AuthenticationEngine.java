@@ -404,9 +404,15 @@ public class AuthenticationEngine {
 				return new APIAuthenticateResponse("MISSING_DEVICE_OR_TOKEN", "Missing exactly one of device or notification token.");
 			}
 			
-			if(req.device != null && (req.forcePrimary != null && req.forcePrimary || user.getPrimaryNotificationDevice() == null)) {					
-				status = NotificationEngine.registerPrimaryDevice(sk, user, req.device, req.notificationToken);
-			} 
+//			if(req.device != null && (req.forcePrimary != null && req.forcePrimary || user.getPrimaryNotificationDevice() == null)) {					
+//				status = NotificationEngine.registerPrimaryDevice(sk, user, req.device, req.notificationToken);
+//			}
+			if(req.device != null && (user.getPrimaryNotificationDevice() == null)) {					
+				status = NotificationEngine.registerPrimaryDevice(sk, user, req.device, req.notificationToken, false);
+			} else if(req.device != null && (req.checkPrimaryDevice != null && req.checkPrimaryDevice)) {
+				status = NotificationEngine.registerPrimaryDevice(sk, user, req.device, req.notificationToken, false);
+			}
+			
 			if(status.equals("OK")) {
 				sk.commit();				
 				APIAuthenticateResponse res = new APIAuthenticateResponse(token);
@@ -422,6 +428,16 @@ public class AuthenticationEngine {
 				sk.commit();
 				APIAuthenticateResponse res = new APIAuthenticateResponse(token);
 				res.primaryDeviceOverride = true;
+				res.monitored = user.getMonitored();
+				res.postingSecret = user.getPostingSecret();
+				res.userId = user.getUserId();
+				res.name = user.name;
+				return res;
+			} 
+			if(status.equals("OK_NEW_DEVICE_DETECTED")) {
+				sk.commit();
+				APIAuthenticateResponse res = new APIAuthenticateResponse(token);
+				res.primaryNewDeviceDetected = true;
 				res.monitored = user.getMonitored();
 				res.postingSecret = user.getPostingSecret();
 				res.userId = user.getUserId();
@@ -722,7 +738,7 @@ public class AuthenticationEngine {
 			if (user == null) return new APIPrimaryDeviceResponse("ERROR", "No user found");
 			
 							
-			String registerStatus = NotificationEngine.registerPrimaryDevice(sk, user, req.device, req.notificationToken);
+			String registerStatus = NotificationEngine.registerPrimaryDevice(sk, user, req.device, req.notificationToken, req.overridePrimaryDevice);
 			
 			if (registerStatus.startsWith("OK")) {
 				sk.commit();	

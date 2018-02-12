@@ -8,7 +8,8 @@ public class APIAuthenticate {
 	public String password;
 	public APIDevice device;
 	public String notificationToken;
-	public Boolean forcePrimary;
+	public Boolean checkPrimaryDevice;
 	public String oneTimeToken;
 	public String providerToken;
+	public Boolean overridePrimaryDevice;
 }

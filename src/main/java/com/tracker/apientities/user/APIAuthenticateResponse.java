@@ -10,6 +10,7 @@ public class APIAuthenticateResponse extends APIBaseResponse {
 	public String userId;
 	public Boolean isPrimaryDevice;
 	public String name;
+	public Boolean primaryNewDeviceDetected;
 	
 	public APIAuthenticateResponse(String token) {
 		this.token = token;
