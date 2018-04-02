@@ -114,7 +114,7 @@ public class AuthenticationEngine {
 			user.setPassword(null, null);  // no password
 			user.setProvider(providerId);
 			user.setUserId(userId);	
-			if(providerId.equalsIgnoreCase("GOOPTI")) user.setMonitored(true); // if not existing user and provider == GOOPTI -> set monitored; maybe this should changed in the future
+			//if(providerId.equalsIgnoreCase("GOOPTI")) user.setMonitored(true); // if not existing user and provider == GOOPTI -> set monitored; maybe this should changed in the future
 		}
 		
 		ugen.user = user;
